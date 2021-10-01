@@ -1,0 +1,10 @@
+D:\ксенькино\Codes\Diploma\ElasticModulus\ElasticModulus\bin\Debug\ElasticModulus.exe.config
+D:\ксенькино\Codes\Diploma\ElasticModulus\ElasticModulus\bin\Debug\ElasticModulus.exe
+D:\ксенькино\Codes\Diploma\ElasticModulus\ElasticModulus\bin\Debug\ElasticModulus.pdb
+D:\ксенькино\Codes\Diploma\ElasticModulus\ElasticModulus\obj\Debug\ElasticModulus.csprojAssemblyReference.cache
+D:\ксенькино\Codes\Diploma\ElasticModulus\ElasticModulus\obj\Debug\ElasticModulus.FormMain.resources
+D:\ксенькино\Codes\Diploma\ElasticModulus\ElasticModulus\obj\Debug\ElasticModulus.Properties.Resources.resources
+D:\ксенькино\Codes\Diploma\ElasticModulus\ElasticModulus\obj\Debug\ElasticModulus.csproj.GenerateResource.cache
+D:\ксенькино\Codes\Diploma\ElasticModulus\ElasticModulus\obj\Debug\ElasticModulus.csproj.CoreCompileInputs.cache
+D:\ксенькино\Codes\Diploma\ElasticModulus\ElasticModulus\obj\Debug\ElasticModulus.exe
+D:\ксенькино\Codes\Diploma\ElasticModulus\ElasticModulus\obj\Debug\ElasticModulus.pdb
