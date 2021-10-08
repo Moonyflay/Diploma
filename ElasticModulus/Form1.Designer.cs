@@ -67,9 +67,10 @@
             // 
             this.panel1.AutoScroll = true;
             this.panel1.Controls.Add(this.pictureBoxMain);
-            this.panel1.Location = new System.Drawing.Point(210, 30);
+            this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panel1.Location = new System.Drawing.Point(205, 30);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1205, 816);
+            this.panel1.Size = new System.Drawing.Size(1210, 816);
             this.panel1.TabIndex = 1;
             // 
             // pictureBoxMain

@@ -20,8 +20,8 @@ namespace ElasticModulus
         double mx; // Мат. ожидание диаметра
         double sigma ; //ср. кв. отклонение
 
-
-        public List<int> [] Component;
+        public List<List<int>> Path = new List<List<int>>();
+        public List<int> [] Component;        
         // Хранит в себе номера клеток, содержащих тот или иной компонент    
         // [0] - Нет вещества (пора) при porous == true                                                   // сделать проверку vmax поры  > V пор => ош
         double[] vol_frac; // Объемные доли компонентов 
@@ -42,10 +42,10 @@ namespace ElasticModulus
             cell_in_col = _cell_in_col;
             cell_size = _cell_size;
             cell_num = cell_in_col * cell_in_row;
-            
-            if (def == true) Structure_Defenition(FormMain.sluchai);
 
-        }
+            if (def == true) { Structure_Defenition(FormMain.sluchai); Short_Path(); }
+
+            }
         public Map(double[] _vol_frac, int _cell_in_row, int _cell_in_col, double _mind, double _maxd, double _mx, double _sigma, double _cell_size) :  this(_vol_frac, _cell_in_row, _cell_in_col, _cell_size, false)
         {
             porous = true;
@@ -54,6 +54,7 @@ namespace ElasticModulus
             mx = _mx;
             sigma = _sigma;
             Structure_Defenition(FormMain.sluchai);
+            Short_Path();
         }
 
         void Structure_Defenition(Random sluchai)
@@ -152,6 +153,101 @@ namespace ElasticModulus
             if (y == 0) return x;
             if (x == 0) return y * cell_in_row;
             return y * cell_in_row + x;
+        }
+        public void Short_Path() //2D 
+        {
+            if (porous == false) return;
+            for (int i = 0; i < cell_in_row; i++)
+            {
+                if (Component[0].Contains(i)) continue;
+                //List<int> path = new List<int>();
+                //path.Add(i);
+                Path.Add(new List<int>() {i}); 
+            }
+            for (int i = 0; i < Path.Count; i++)
+            {
+                List<int> path = Path[i];
+                    Go_Down(ref path);
+
+
+                    //if (Component[0].Contains(index) == false) { Path[i].Add(index); } //Если под клеткой нет поры, воздействие направляется туда
+                    //                                                                   // если есть, то проверяется, можно ли обойти пору без подъема вверх. Если можно, то пора обходится. Нельзя - конец пути
+                    //else
+                    //{
+                    //    bool left = index - 1 < 0 || (index - 1) % 3 != 0 || Component[0].Contains(index - 1);
+                    //    bool right = index + 1 >= cell_num || (index + 1) % 3 != 0 || Component[0].Contains(index + 1);
+
+                    //    if (left && right == true) { break; }
+                    //    if (left == true) { Path[i].Add(index + i); continue; }
+                    //    if (right == true) { Path[i].Add(index - i); continue; }
+
+                    //    List<int> path_l = new List<int>();
+                    //    List<int> path_r = new List<int>();
+
+
+                    
+            }
+
+           
+            
+            void Go_Down(ref List<int> rout, bool from_left = false, bool from_right = false) 
+            {
+                int index = rout[rout.Count - 1];
+                if (index + cell_in_row >= cell_num) { return; }; // условие проверяет, достигли ли мы низа
+                if (Component[0].Contains(index + cell_in_row) == false) { rout.Add(index + cell_in_row); Go_Down(ref rout);return; } // ?
+                
+                //Если под клеткой нет поры, воздействие направляется туда
+                // если есть, то проверяется, можно ли обойти пору без подъема вверх. Если можно, то пора обходится. 
+                else
+                {
+                    bool no_left = index - 1 < 0 || (index - 1) % cell_in_row == 0 || Component[0].Contains(index - 1);
+                    bool no_right = index + 1 >= cell_num || (index + 1) % cell_in_row == 0 || Component[0].Contains(index + 1);
+
+                    if ((no_left && no_right == true) || (no_left && from_right == true) || (no_right && from_left == true)) { return; } //Нельзя обойти - конец пути
+                    // no_left && from_right == true - Клетку нельзя обойти слева и предыдущая клетка была справа - Условие нужно, чтобы направление не металось туда-сюда
+
+                    byte k = (byte)(Convert.ToByte(no_left) + Convert.ToByte(no_right)*2);
+                    // 1 - no_left = true  и no_right != true
+                    // 2 - no_left != true и no_right = true
+                    // 0 - no_left != true  и no_right != true
+                    switch (k)
+                    {
+                        case 1: { rout.Add(index + 1); Go_Down(ref rout, true); break; } //Можно обойти только справа - путь продолжается справа
+                        case 2: { rout.Add(index - 1); Go_Down(ref rout, false, true); break;}
+                        default:
+                            { // Можно обойти с обеих сторон - будут проверяться оба пути
+                                List<int> path_l = new List<int>();
+                                List<int> path_r = new List<int>();
+                                if (from_left == false) { path_l.AddRange(rout); path_l.Add(index - 1); Go_Down(ref path_l, false, true); }
+                                if (from_right == false) { path_r.AddRange(rout); path_r.Add(index + 1); Go_Down(ref path_r, true); }
+                                // Добавить удаление лишних клеток
+
+                                // Выбор одного из двух путей
+                                int x = 0; int y1 = 0 ; int y2 = 0;
+                                if(path_l.Count!=0) Num_Decrypt(path_l[path_l.Count - 1], ref x, ref y1);
+                                if (path_r.Count != 0) Num_Decrypt(path_r[path_r.Count - 1], ref x, ref y2);
+                                if (y2 == y1)
+                                { if (path_l.Count > path_r.Count) rout.AddRange(path_r); else rout.AddRange(path_l); }
+                                else {if (y2 > y1) rout.AddRange(path_r); else rout.AddRange(path_l); }
+                                path_l.Clear();
+                                path_r.Clear();
+                                break; 
+                            }
+                    }
+                    
+                    //if (no_left == true) { rout.Add(index + 1); Go_Down(rout);}  
+                    //if (no_right == true) { rout.Add(index - 1); Go_Down(rout);}
+                    
+                    
+                }
+            }
+
+
+
+
+
+
+
         }
     }
 }

@@ -14,7 +14,7 @@ namespace ElasticModulus
     {
         int cell_in_row = 200;
         int cell_in_col = 200;
-        byte cell_size_pix = 10;
+        byte cell_size_pix = 5;
         double cell_size = 2;
         double[] vol_frac = new double [3];
         public  static Random sluchai = new Random();
@@ -26,13 +26,13 @@ namespace ElasticModulus
         private void buttonStart_Click(object sender, EventArgs e)
         {
            
-            vol_frac[0] = 0.20;
+            vol_frac[0] = 0.50;
             vol_frac[1] = 0.05;
             vol_frac[2] = 1 - vol_frac[0]- vol_frac[1];
             double mind = 5;
             double maxd = 30;
-            double mx = 25;
-            double sigma = 5;
+            double mx = 8;
+            double sigma = 0.15;
 
             Map map = new Map(vol_frac, cell_in_row, cell_in_col, mind, maxd, mx, sigma, cell_size);
             Bitmap bmp;
@@ -46,7 +46,7 @@ namespace ElasticModulus
                 {
                         int x = 0; int y = 0;
                         map.Num_Decrypt(map.Component[k][i], ref x, ref y);
-                        rect = new Rectangle(x* cell_size_pix+1, y* cell_size_pix+1, cell_size_pix-2, cell_size_pix-2);
+                        rect = new Rectangle(x* cell_size_pix/*+1*/, y* cell_size_pix/*+1*/, cell_size_pix/*-2*/, cell_size_pix/*-2*/);
                         switch (k)
                             {
                             case 0: { g.FillRectangle(new SolidBrush(Color.LightSkyBlue), rect); break; }
@@ -58,9 +58,24 @@ namespace ElasticModulus
                         //g.FillRectangle(new SolidBrush(Color.LightSkyBlue), rect);
                         //else g.FillRectangle(new SolidBrush(Color.Peru), rect);
                     }
+                // Функция отображения путей. Не забыть убрать!
+                for (int i = 0; i < map.Path.Count; i++)
+                {
+                    Color col = Color.FromArgb(sluchai.Next(256), sluchai.Next(256), sluchai.Next(256));
+                    for (int j = 0; j < map.Path[i].Count; j++)
+                    {
+                        int x = 0; int y = 0;
+                        map.Num_Decrypt(map.Path[i][j], ref x, ref y);
+                        rect = new Rectangle(x * cell_size_pix/*+1*/, y * cell_size_pix/*+1*/, cell_size_pix/*-2*/, cell_size_pix/*-2*/);
+
+                        g.FillRectangle(new SolidBrush(col), rect);
+                    }
+                }
+
             }
             pictureBoxMain.Image?.Dispose();
             pictureBoxMain.Image = bmp;
+
 
         }
       
