@@ -43,7 +43,7 @@ namespace ElasticModulus
             cell_size = _cell_size;
             cell_num = cell_in_col * cell_in_row;
 
-            if (def == true) { Structure_Defenition(FormMain.sluchai); Short_Path(); }
+            if (def == true) { Structure_Defenition(FormMain.sluchai); Middle_Path(); }
 
             }
         public Map(double[] _vol_frac, int _cell_in_row, int _cell_in_col, double _mind, double _maxd, double _mx, double _sigma, double _cell_size) :  this(_vol_frac, _cell_in_row, _cell_in_col, _cell_size, false)
@@ -54,7 +54,7 @@ namespace ElasticModulus
             mx = _mx;
             sigma = _sigma;
             Structure_Defenition(FormMain.sluchai);
-            Short_Path();
+            Middle_Path();
         }
 
         void Structure_Defenition(Random sluchai)
@@ -188,7 +188,6 @@ namespace ElasticModulus
                     
             }
 
-           
             
             void Go_Down(ref List<int> rout, bool from_left = false, bool from_right = false) 
             {
@@ -242,12 +241,224 @@ namespace ElasticModulus
                 }
             }
 
+        }
+
+        void Middle_Path()
+        {
+            if (porous == false) return;
+            int last = 0;
+            bool last_pore = true;
+            for (int i = 0; i < cell_in_row; i++)
+            {
+                if (Component[0].Contains(i) || i + 1 == cell_in_row)  //
+                {
+                    if (last_pore == true) { last = i; continue; }
+                    else
+                    {
+                        last_pore = true;
+                        Path.Add(new List<int>() { (last + i) / 2 });
+                        last = i;
+
+                    }
+                }
+                else last_pore = false;
+            }
+            for (int i = 0; i < Path.Count; i++)
+            {
+                
+                List<int> path = Path[i];
+
+                if (Wall_Check(path[0]) == true) 
+                {
+                  // if (Component[0].Contains(Path[i].Last()+cell_in_row) == false) Path[i].Add(Path[i].Last() + cell_in_row); 
+                   Go_Down(ref path);
+                }
+
+            }
 
 
+            void Go_Down(ref List<int> path)
+            {
+                while (path[path.Count - 1] + cell_in_row < cell_num)
+                {
+                    int index = path.Last();
+                    if (Component[0].Contains(index + cell_in_row)) { Go_Side(ref path); return; } //изменить после базы
+                    else
+                    {
+
+                        //int right_wall = index + cell_in_row; bool right = false;
+                        //int left_wall = index + cell_in_row; bool left = false;
+                        //int k = 1;
+                        //while (right == false || left == false)
+                        //{
+                        //    int _base = index + cell_in_row;
+                        //    if (right == false &&
+                        //        ((_base - k - 1) / cell_in_row < _base / cell_in_row || Component[0].Contains(_base - k)))
+                        //    { right_wall = _base - k; right = true; }
+                        //    if (left == false &&
+                        //        ((_base + k + 1) / cell_in_row > _base / cell_in_row || Component[0].Contains(_base + k)))
+                        //    { left_wall = _base + k; left = true; }
+                        //    k++;
+                        //}
+                        //int next = (right_wall + left_wall) / 2;
+                       
+                        
+                        path.Add(Wall_Search(index));
+
+                    }
+                }
+                
+            }
+            bool Wall_Check(int index /*, ref List<int> path*/) // Жук. Проверяет, разрмкнута ли полость.
+            {
+
+                int[] xy = new int[2] { 0, 0 };
+                
+                int [] xys = new int[2];
+                Num_Decrypt(index, ref xy[0], ref xy[1]);
+                xys[0] = xy[0]; xys[1] = xy[1];
+                byte a = 0;
+                sbyte sign = -1; 
+                bool clockwise = false;
+                do 
+                {
+                    if (xy[1] >= cell_in_col) return true; // Разомкнута
+                    xy[a] += sign;
+                    
+
+                    if (xy[a] < 0 || xy[1] >= cell_in_col || xy[0] >= cell_in_row || Component[0].Contains(Num_Crypt(xy[0], xy[1])) == true)
+                        clockwise = false;
+                    else clockwise = true;
+                    //if ((xy[a] < 0 || xy[1] >= cell_in_col || xy[0] >= cell_in_row) == false) path.Add(Num_Crypt(xy[0], xy[1])) ;
+                    if (a == 1) a = 0; else a = 1;
+                    if ((clockwise == true && a == 0) || (clockwise == false && a == 1)) sign *= -1;
+                    
+                }
+                while ( xys[0] != xy[0] || xys[1] != xy[1]);
+
+                return false; // Замкнута
+
+            }
+
+            int Wall_Search(int index) 
+            {
+                int right_wall = index + cell_in_row; bool right = false;
+                int left_wall = index + cell_in_row; bool left = false;
+                int k = 1;
+                while (right == false || left == false)
+                {
+                    int _base = index + cell_in_row;
+                    if (right == false &&
+                        ((_base - k - 1) / cell_in_row < _base / cell_in_row || Component[0].Contains(_base - k)))
+                    { right_wall = _base - k; right = true; }
+                    if (left == false &&
+                        ((_base + k + 1) / cell_in_row > _base / cell_in_row || Component[0].Contains(_base + k)))
+                    { left_wall = _base + k; left = true; }
+                    k++;
+                }
+                int next = (right_wall + left_wall) / 2;
+                return next;
+            }
+
+            void Go_Side(ref List<int> path) 
+            {
+                int index = path[path.Count - 1];
+
+                List<int> path_l = new List<int>(); 
+                List<int> path_r = new List<int>(); //
+
+                int right_wall = -1; bool right = false;
+                int left_wall = -1; bool left = false;
+                int k = 1;
+                while (right == false || left == false)
+                {
+                    int _base = index + cell_in_row;
+
+                    if (right == false)
+                    {
+                        if ((_base - k - 1) / cell_in_row < _base / cell_in_row) right = true;
+                        else if (Component[0].Contains(_base - k) == false && Component[0].Contains(Wall_Search(_base - k))== false)
+                        { right_wall = Wall_Search(_base - k); right = true; } //
+                    }
+
+                    if (left == false)
+                    {
+                        if ((_base + k + 1) / cell_in_row > _base / cell_in_row) left = true;
+                        else if (Component[0].Contains(_base + k) == false && Component[0].Contains(Wall_Search(_base +k)) == false)
+                        { left_wall = Wall_Search(_base + k); left = true; } //
+                    }                   
+                    k++;
+                }
+                int x = 0; int y1 = 0; int y2 = 0;
+
+                if (left_wall > 0) {  path_l.Add(left_wall); Go_Down(ref path_l); Num_Decrypt(path_l[path_l.Count - 1], ref x, ref y1); }
+                if (right_wall > 0) { path_r.Add(right_wall); Go_Down(ref path_r); Num_Decrypt(path_r[path_r.Count - 1], ref x, ref y2); }
 
 
+                // Выбор одного из двух путей
+                if (y2 == y1)
+                { if (path_l.Count > path_r.Count) path.AddRange(path_r); else path.AddRange(path_l); }// AddRange(path) n AddRange(path_)?
+                else { if (y2 > y1) path.AddRange(path_r); else path.AddRange(path_l); }
+                path_l.Clear();
+                path_r.Clear();
+            }
 
+            void Go_Down_xy(ref List<int> path) 
+            {
+                while (path[path.Count - 1] < cell_num)
+                {
+                    int index = path[path.Count - 1];
+                    int x_1 = 0; int y_1 = 0;
+                    Num_Decrypt(index, ref x_1, ref y_1);
+                    int index_2; int x_2 = x_1; int y_2 = y_1 + 1;
+                    if (path.Count > 1) { index_2 = path[path.Count - 2]; Num_Decrypt(index_2, ref x_2, ref y_2); }
 
+                    byte dx = 1; byte dy = 1;
+
+                    if (x_2 - x_1 == 0 || Abs((y_2 - y_1) / (x_2 - x_1)) >= Tan(3 * PI / 8)) dx = 0;
+                    else if (Abs((y_2 - y_1) / (x_2 - x_1)) <= Tan(PI / 8)) dy = 0;
+
+                    if (Component[0].Contains(Num_Crypt(x_2 + dx, y_2 + dy)) == false)
+                    {
+                        Wall_Search_xy(out int x_3, out int y_3, dx, dy, x_2, y_2);
+                        if (Component[0].Contains(Num_Crypt(x_3, y_3)) == false) path.Add(Num_Crypt(x_3, y_3));
+                        else return;
+                    }
+                    else return;
+                }
+
+                void Wall_Search_xy(out int next_x, out int next_y, byte dx, byte dy, int x_2, int y_2) 
+                {
+                    sbyte dx_p = 1;sbyte dy_p = 1;
+                    if (dx == 0) dy_p = 0;
+                    if (dy == 0) dx_p = 0;
+                    if (dx * dy > 0) dy_p *= -1;
+
+                    int x_l = x_2 + dx; int y_l = y_2 + dy; bool right = false;
+                    int x_r = x_2 + dx; int y_r = y_2 + dy; bool left = false;
+                    
+                    while (right == false || left == false)
+                    {
+
+                        if (left == false ) 
+                        {
+                            if (x_l - dx_p < 0 || y_l - dy_p < 0 || y_l - dy_p >= cell_in_col || Component[0].Contains(Num_Crypt(x_l - dx_p, y_l - dy_p)) == true) left = true;
+                            else { x_l -= dx_p; y_l -= dy_p; }
+                        }
+
+                        if (right == false)
+                        {
+                            if (x_r + dx_p > cell_in_row || y_r + dy_p < 0 || y_r + dy_p >= cell_in_col || Component[0].Contains(Num_Crypt(x_r + dx_p, y_r + dy_p)) == true) right = true;
+                            else { x_r += dx_p; y_r += dy_p; }
+                        }
+
+                    }
+                    next_x = (x_l + x_r) / 2;
+                    next_y = (y_l + y_r) / 2;
+
+                }
+            
+            }
         }
     }
 }
