@@ -43,7 +43,7 @@ namespace ElasticModulus
             cell_size = _cell_size;
             cell_num = cell_in_col * cell_in_row;
 
-            if (def == true) { Structure_Defenition(FormMain.sluchai); Middle_Path(); }
+            if (def == true) { Structure_Defenition(FormMain.sluchai); Middle_Path(FormMain.sluchai); }
 
             }
         public Map(double[] _vol_frac, int _cell_in_row, int _cell_in_col, double _mind, double _maxd, double _mx, double _sigma, double _cell_size) :  this(_vol_frac, _cell_in_row, _cell_in_col, _cell_size, false)
@@ -54,7 +54,7 @@ namespace ElasticModulus
             mx = _mx;
             sigma = _sigma;
             Structure_Defenition(FormMain.sluchai);
-            Middle_Path();
+            Middle_Path(FormMain.sluchai);
         }
 
         void Structure_Defenition(Random sluchai)
@@ -243,14 +243,14 @@ namespace ElasticModulus
 
         }
 
-        void Middle_Path()
+        void Middle_Path(Random sluchai)
         {
             if (porous == false) return;
             int last = 0;
             bool last_pore = true;
             for (int i = 0; i < cell_in_row; i++)
             {
-                if (Component[0].Contains(i) || i + 1 == cell_in_row)  //
+                if (Component[0].Contains(i) || i + 1 == cell_in_row)  // строгое или?
                 {
                     if (last_pore == true) { last = i; continue; }
                     else
@@ -267,11 +267,12 @@ namespace ElasticModulus
             {
                 
                 List<int> path = Path[i];
-
-                if (Wall_Check(path[0]) == true) 
+                //if(i == 2)
+                if (Wall_Check(path[0]) == true) //
                 {
-                  // if (Component[0].Contains(Path[i].Last()+cell_in_row) == false) Path[i].Add(Path[i].Last() + cell_in_row); 
-                   Go_Down(ref path);
+                    // if (Component[0].Contains(Path[i].Last()+cell_in_row) == false) Path[i].Add(Path[i].Last() + cell_in_row); 
+                    // Go_Down(ref path);
+                    Go_Down_xy(ref path);
                 }
 
             }
@@ -405,29 +406,145 @@ namespace ElasticModulus
 
             void Go_Down_xy(ref List<int> path) 
             {
-                while (path[path.Count - 1] < cell_num)
+                int index_1 = path[0];
+                double anti_repeat = 0.3;
+                while (path.Last() < cell_num)
                 {
-                    int index = path[path.Count - 1];
-                    int x_1 = 0; int y_1 = 0;
-                    Num_Decrypt(index, ref x_1, ref y_1);
-                    int index_2; int x_2 = x_1; int y_2 = y_1 + 1;
-                    if (path.Count > 1) { index_2 = path[path.Count - 2]; Num_Decrypt(index_2, ref x_2, ref y_2); }
-
-                    byte dx = 1; byte dy = 1;
-
-                    if (x_2 - x_1 == 0 || Abs((y_2 - y_1) / (x_2 - x_1)) >= Tan(3 * PI / 8)) dx = 0;
-                    else if (Abs((y_2 - y_1) / (x_2 - x_1)) <= Tan(PI / 8)) dy = 0;
-
-                    if (Component[0].Contains(Num_Crypt(x_2 + dx, y_2 + dy)) == false)
+                    //MARK:
+                    int index_2 = path.Last();
+                    int x_2 = 0; int y_2 = 0;
+                    Num_Decrypt(index_2, ref x_2, ref y_2);
+                    int x_1 = x_2; int y_1 = y_2; //
+                    if (path.Count > 1) { /*index_1 = path[path.Count - 2];*/ Num_Decrypt(index_1, ref x_1, ref y_1); }
+                    // 
+                    sbyte dx = 1; sbyte dy = 1;
+                    if (Component[0].Contains(Num_Crypt(x_2, y_2 + dy)) == true /*|| sluchai.NextDouble() > anti_repeat*/)
                     {
-                        Wall_Search_xy(out int x_3, out int y_3, dx, dy, x_2, y_2);
-                        if (Component[0].Contains(Num_Crypt(x_3, y_3)) == false) path.Add(Num_Crypt(x_3, y_3));
-                        else return;
+                        if (x_2 - x_1 == 0 || Abs((y_2 - y_1) / (x_2 - x_1)) >= Tan(3 * PI / 8)) dx = 0; //
+                        else if (path.Count > 1 && Abs((y_2 - y_1) / (x_2 - x_1)) <= Tan(PI / 8)) dy = 0;//
+                        if (x_2 - x_1 < 0 && x_2 > 0) { dx *= -1; }
+                        if (y_2 - y_1 < 0 && y_2 > 0) { dy *= -1; }
+                        //if (dy != 0 && y_2 > 0) dy = -1;
                     }
-                    else return;
+                    else { dx = 0;dy = 1; }
+                    bool end = false;
+                    bool start = true;
+                    while (Component[0].Contains(Num_Crypt(x_2 + dx, y_2 + dy)) == true)
+                    {
+
+                        if (start == true)
+                            for (sbyte j = 0; j > 2; j++)
+                            {
+                                if (end == true) break;
+                                for (sbyte i = -1; i > 2; i++)
+                                {
+                                    if ((dx == i && dy == j) || (i == 0 && j == 0) || x_2 + i < 0 || y_2 + j < 0 || x_2 + i >= cell_in_row || y_2 + j >= cell_in_col) continue;
+                                    if (Component[0].Contains(Num_Crypt(x_2 + i, y_2 + j)) == false) { dx = i; dy = j; end = true; break; }
+
+                                }
+                            }
+
+                        if (end == false)
+                        {
+                            //return; 
+                            // в большинстве случаев работает, но сильно засоряет 
+                            //start = false;
+                            if (path.Count > 1 && start == true)
+                            {
+                                double cut = 0.03;
+                                Num_Decrypt(path[path.Count - 1 - (int)(path.Count * cut)], ref x_2, ref y_2);
+                                path.RemoveRange(path.Count - 1 - (int)(path.Count * cut), (int)(path.Count * cut)+1);
+                                index_1 = path[path.Count - 2];
+                                //goto MARK;
+                                start = false;
+                                end = false;
+
+                               // path.RemoveAt(path.Count - 1);
+                                //if (!(Abs(x_1 - x_2) < 2 && Abs(y_1 - y_2) < 2))
+                                //{
+                                    
+                                    
+                                //    //if (x_2 - x_1 != 0) x_2 -= (x_2 - x_1) / Abs(x_2 - x_1);
+                                //    //if (y_2 - y_1 != 0) y_2 -= (y_2 - y_1) / Abs(y_2 - y_1);
+                                //}
+                                //else return;
+                                //x_2 = (x_2 + x_1) / 2;
+                                //y_2 = (y_2 + y_1) / 2;
+                                //else
+                                //{
+                                //   Num_Decrypt(path[path.Count - 2], ref x_2, ref y_2);
+                                //    path.RemoveAt(path.Count - 1);
+                                //}
+                                // path.Add(Num_Crypt(x_2, y_2));
+
+
+                            }
+                            else return;
+                        }
+
+                    }
+
+                        Wall_Search_xy(out int x_3, out int y_3, dx, dy, x_2, y_2);
+                    if (Component[0].Contains(Num_Crypt(x_3, y_3)) == false)
+                    {
+                        index_1 = path.Last();
+                        int dx_23 = 0; int dy_23 = 0;
+                        while (Abs(x_3 - x_2 - dx_23) > 1 || Abs(y_3 - y_2 - dy_23) > 1) // для визуализации
+                        {
+                            if (Abs(x_3 - x_2 - dx_23) > 1)
+                            {
+                                if (x_3 - x_2 > 0) dx_23++; else dx_23--;
+                            }
+                            if (Abs(y_3 - y_2 - dy_23) > 1)
+                            {
+                                if (y_3 - y_2 > 0) dy_23++; else dy_23--;
+                            }
+                            path.Add(Num_Crypt(x_2 + dx_23, y_2 + dy_23));
+                        }
+                        path.Add(Num_Crypt(x_3, y_3));
+                        
+                    }
+                    { 
+                    //    if (Component[0].Contains(Num_Crypt(x_2 + dx, y_2 + dy)) == false)
+                    //{
+                    //    Wall_Search_xy(out int x_3, out int y_3, dx, dy, x_2, y_2);
+                    //    if (Component[0].Contains(Num_Crypt(x_3, y_3)) == false)
+                    //    {
+                    //        //int dx_23 = 0; int dy_23 = 0;
+                    //        //while (Abs(x_3 - x_2 - dx_23) > 1 || Abs(y_3 - y_2 - dy_23) > 1) // для визуализации
+                    //        //{
+                    //        //    if (Abs(x_3 - x_2 - dx_23) > 1)
+                    //        //    {
+                    //        //        if (x_3 - x_2 > 0) dx_23++; else dx_23--;
+                    //        //    }
+                    //        //    if (Abs(y_3 - y_2 - dy_23) > 1)
+                    //        //    {
+                    //        //        if (y_3 - y_2 > 0) dy_23++; else dy_23--;
+                    //        //    }
+                    //        //    path.Add(Num_Crypt(x_2 + dx_23, y_2 + dy_23));
+                    //        //}
+                    //        path.Add(Num_Crypt(x_3, y_3));
+
+                    //    }
+
+                    //    else return;
+                    //}
+                    //else
+                    //{
+                    //    if (path.Count > 1) 
+                    //    {
+                    //        if ((x_2 == x_1) == false)
+                    //            x_2 -= (x_2 - x_1)/Abs(x_2-x_1);
+                    //    }
+                    //    else return;
+                    //    //double k = sluchai.NextDouble();
+                    //    //if (k > 1 / 3) dx = 0;
+                    //    //if (k < 2 / 3) dy = 0;
+                    //}
+                }
                 }
 
-                void Wall_Search_xy(out int next_x, out int next_y, byte dx, byte dy, int x_2, int y_2) 
+                void Wall_Search_xy(out int next_x, out int next_y, sbyte dx, sbyte dy, int x_2, int y_2) 
                 {
                     sbyte dx_p = 1;sbyte dy_p = 1;
                     if (dx == 0) dy_p = 0;
@@ -439,25 +556,70 @@ namespace ElasticModulus
                     
                     while (right == false || left == false)
                     {
-
+                        // diag. ch
                         if (left == false ) 
                         {
-                            if (x_l - dx_p < 0 || y_l - dy_p < 0 || y_l - dy_p >= cell_in_col || Component[0].Contains(Num_Crypt(x_l - dx_p, y_l - dy_p)) == true) left = true;
+                            if (x_l - dx_p < 0 || x_l - dx_p >= cell_in_row || y_l - dy_p < 0 || y_l - dy_p >= cell_in_col || Component[0].Contains(Num_Crypt(x_l - dx_p, y_l - dy_p)) == true) left = true;
                             else { x_l -= dx_p; y_l -= dy_p; }
                         }
 
                         if (right == false)
                         {
-                            if (x_r + dx_p > cell_in_row || y_r + dy_p < 0 || y_r + dy_p >= cell_in_col || Component[0].Contains(Num_Crypt(x_r + dx_p, y_r + dy_p)) == true) right = true;
+                            if (x_r + dx_p < 0 || x_r + dx_p >= cell_in_row || y_r + dy_p < 0 || y_r + dy_p >= cell_in_col || Component[0].Contains(Num_Crypt(x_r + dx_p, y_r + dy_p)) == true) right = true;
                             else { x_r += dx_p; y_r += dy_p; }
                         }
 
                     }
-                    next_x = (x_l + x_r) / 2;
-                    next_y = (y_l + y_r) / 2;
+                    double k;
+                    double mnoj;
+                    byte sch  = 0;
+                    do
+                    {
+                        if (Max(Abs(x_l - x_r), Abs(y_l - y_r)) < 5)
+                        {
+                            k = sluchai.NextDouble();
+                            next_y = (int)(Abs(y_l - y_r) * k + Min(y_l, y_r));
+                            k = sluchai.NextDouble();
+                            next_x = (int)(Abs(x_l - x_r) * k + Min(x_l, x_r));
+                        }
+                        else
+                        {
+
+                            do
+                            {
+                                k = sluchai.NextDouble();
+                            }
+                            while (sluchai.NextDouble() > Prob(k, 0.3, 0.7));
+
+                            //mnoj = k * (0.90 - 0.40) + 0.40;
+                            next_y = (int)(Abs(y_l - y_r) * k + Min(y_l, y_r)); //
+
+                            do
+                            {
+                                k = sluchai.NextDouble();
+                            }
+                            while (sluchai.NextDouble() > Prob(k, 0.3, 0.7));
+                            //mnoj = k * (0.70 - 0.30) + 0.30;
+                            next_x = (int)(Abs(x_l - x_r) * k + Min(x_l, x_r));
+                            
+                        }
+                        sch++;
+                    }
+                    while (sch < 250 && Component[0].Contains(Num_Crypt(next_x, next_y)) == true);
+                   
 
                 }
-            
+                double Prob(double x, double min, double max)
+                {
+                    double p;
+                    bool right = x > min;
+                    bool left = x < max;
+                    if (left == true && right == true) {p = 1; return p; }
+                    if (left == true) { p = x / min; return p; }
+                    p = (1 - x) / (1 - max);
+                    return p;
+                }
+
             }
         }
     }
