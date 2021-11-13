@@ -53,14 +53,14 @@
             this.файлToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(1415, 30);
+            this.menuStrip1.Size = new System.Drawing.Size(1415, 28);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
             // файлToolStripMenuItem
             // 
             this.файлToolStripMenuItem.Name = "файлToolStripMenuItem";
-            this.файлToolStripMenuItem.Size = new System.Drawing.Size(59, 26);
+            this.файлToolStripMenuItem.Size = new System.Drawing.Size(59, 24);
             this.файлToolStripMenuItem.Text = "Файл";
             // 
             // panel1
@@ -68,9 +68,9 @@
             this.panel1.AutoScroll = true;
             this.panel1.Controls.Add(this.pictureBoxMain);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel1.Location = new System.Drawing.Point(205, 30);
+            this.panel1.Location = new System.Drawing.Point(205, 28);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1210, 816);
+            this.panel1.Size = new System.Drawing.Size(1210, 818);
             this.panel1.TabIndex = 1;
             // 
             // pictureBoxMain
@@ -107,10 +107,10 @@
             this.tabControl1.Controls.Add(this.tabPage1);
             this.tabControl1.Controls.Add(this.tabPage2);
             this.tabControl1.Dock = System.Windows.Forms.DockStyle.Left;
-            this.tabControl1.Location = new System.Drawing.Point(0, 30);
+            this.tabControl1.Location = new System.Drawing.Point(0, 28);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(200, 916);
+            this.tabControl1.Size = new System.Drawing.Size(200, 918);
             this.tabControl1.TabIndex = 3;
             // 
             // tabPage1
@@ -119,7 +119,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 25);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(192, 887);
+            this.tabPage1.Size = new System.Drawing.Size(192, 889);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "tabPage1";
             // 
@@ -146,11 +146,12 @@
             // splitter2
             // 
             this.splitter2.BackColor = System.Drawing.SystemColors.ControlDark;
-            this.splitter2.Location = new System.Drawing.Point(200, 30);
+            this.splitter2.Location = new System.Drawing.Point(200, 28);
             this.splitter2.Name = "splitter2";
-            this.splitter2.Size = new System.Drawing.Size(5, 916);
+            this.splitter2.Size = new System.Drawing.Size(5, 918);
             this.splitter2.TabIndex = 5;
             this.splitter2.TabStop = false;
+            this.splitter2.Visible = false;
             // 
             // FormMain
             // 

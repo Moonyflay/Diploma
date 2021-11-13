@@ -43,7 +43,7 @@ namespace ElasticModulus
             cell_size = _cell_size;
             cell_num = cell_in_col * cell_in_row;
 
-            if (def == true) { Structure_Defenition(FormMain.sluchai); Middle_Path(FormMain.sluchai); }
+            if (def == true) { Structure_Defenition(FormMain.sluchai); /*Middle_Path(FormMain.sluchai);*/ }
 
             }
         public Map(double[] _vol_frac, int _cell_in_row, int _cell_in_col, double _mind, double _maxd, double _mx, double _sigma, double _cell_size) :  this(_vol_frac, _cell_in_row, _cell_in_col, _cell_size, false)
@@ -54,7 +54,8 @@ namespace ElasticModulus
             mx = _mx;
             sigma = _sigma;
             Structure_Defenition(FormMain.sluchai);
-            Middle_Path(FormMain.sluchai);
+            
+            //Middle_Path(FormMain.sluchai);
         }
 
         void Structure_Defenition(Random sluchai)
@@ -148,7 +149,7 @@ namespace ElasticModulus
             // Запись (num/cell_in_row)*cell_in_row имеет смысл, тк при делении целых чисел отбрасывается дробная часть. Например:
             // (13/2)*2 = (6)*2 = 12
         }
-        int Num_Crypt(int x, int y)  // переводит координаты в номер клетки (пока в 2D варианте)
+        public int Num_Crypt(int x, int y)  // переводит координаты в номер клетки (пока в 2D варианте)
         {
             if (y == 0) return x;
             if (x == 0) return y * cell_in_row;
