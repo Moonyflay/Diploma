@@ -26,7 +26,9 @@ namespace ElasticModulus
         // [0] - Нет вещества (пора) при porous == true                                                   // сделать проверку vmax поры  > V пор => ош
         double[] vol_frac; // Объемные доли компонентов 
 
-        public Map(double[] _vol_frac, int _cell_in_row, int _cell_in_col, double _cell_size, bool def = true)
+        int sq_in_rad;
+
+        public Map(int _sq_in_rad, double[] _vol_frac, int _cell_in_row, int _cell_in_col, double _cell_size, bool def = true)
             
         {        
             int comp_num = _vol_frac.Length;
@@ -43,22 +45,107 @@ namespace ElasticModulus
             cell_size = _cell_size;
             cell_num = cell_in_col * cell_in_row;
 
-            if (def == true) { Structure_Defenition(FormMain.sluchai); /*Middle_Path(FormMain.sluchai);*/ }
+            sq_in_rad = _sq_in_rad;
+
+            if (def == true) { Round_Structure_Definition(FormMain.sluchai); /*Middle_Path(FormMain.sluchai);*/ }
 
             }
-        public Map(double[] _vol_frac, int _cell_in_row, int _cell_in_col, double _mind, double _maxd, double _mx, double _sigma, double _cell_size) :  this(_vol_frac, _cell_in_row, _cell_in_col, _cell_size, false)
+        public Map(int _sq_in_rad, double[] _vol_frac, int _cell_in_row, int _cell_in_col, double _mind, double _maxd, double _mx, double _sigma, double _cell_size) :  this(_sq_in_rad, _vol_frac, _cell_in_row, _cell_in_col, _cell_size, false)
         {
             porous = true;
             mind = _mind;
             maxd = _maxd;
             mx = _mx;
             sigma = _sigma;
-            Structure_Defenition(FormMain.sluchai);
+            Round_Structure_Definition(FormMain.sluchai);
             
             //Middle_Path(FormMain.sluchai);
         }
 
-        void Structure_Defenition(Random sluchai)
+        void Round_Structure_Definition(Random sluchai)
+        {
+            double k;
+            double diam;
+            int a = 2;
+            
+            for (int i = 0; i < cell_num; i++) // Выделение клеток за окружностью
+            {
+                int x = 0; int y = 0;
+                Num_Decrypt(i, ref x, ref y);
+                if ((x - sq_in_rad) * (x - sq_in_rad) + (y - sq_in_rad) * (y - sq_in_rad) > sq_in_rad * sq_in_rad) { Component[0].Add(i); }
+            }
+
+            //for (int i = 0; i < cell_num; i++)
+            //{
+            //    int x = 0; int y = 0;
+            //    Num_Decrypt(i, ref x, ref y);
+            //    if ((x - sq_in_rad) * (x - sq_in_rad) + (y - sq_in_rad) * (y - sq_in_rad) > sq_in_rad * sq_in_rad) continue;
+
+
+            //        k = sluchai.NextDouble();
+            //        double vol;
+            //        vol = vol_frac[0] + vol_frac[1];
+
+            //        byte type = (byte)(a - 1);
+            //        for (byte j = (byte)a; j < vol_frac.Length; j++)
+            //        {
+            //            if (k >= vol) { vol += vol_frac[j]; type = j; }
+            //            else break;
+            //        }
+            //        Component[type].Add(i);
+
+            //}
+            if (vol_frac[0]>0)
+            {
+                int pore_cell_num = (int)(vol_frac[0] * sq_in_rad * sq_in_rad);
+                while (pore_cell_num > PI * Pow(mind / cell_size, 2)) // пока что используем площадь = PI * Pow(mind / cell_size,2)
+                {
+                    do
+                    {
+                        k = sluchai.NextDouble();
+                        diam = mind + (maxd - mind) * k; // выбор случайного значения диаметра в интервале
+                        k = sluchai.NextDouble();
+                    }
+                    while (k < Gauss_Distribution(diam, mx, sigma));
+                    int k2 = sluchai.Next(0, cell_num);
+                    if (Component[0].Contains(k2) == true ) continue; // не дает центру поры генерироваться в другой поре или вне круга
+                    pore_cell_num -= Circle(k2, diam);
+
+                }
+            }
+            for (int i = 0; i < cell_num; i++)
+            {
+                if (Component[0].Contains(i) == true) continue; // можно ли упростить?
+
+                k = sluchai.NextDouble();
+
+                double vol;
+                vol = vol_frac[0] + vol_frac[1];
+
+                byte type = (byte)(a - 1);
+                for (byte j = (byte)a; j < vol_frac.Length; j++)
+                {
+                    if (k >= vol) { vol += vol_frac[j]; type = j; }
+                    else break;
+                }
+                // x - случайная величина
+                // Пусть имеется 2 вещества. V0 - объемная доля пор, V1 и V2 - веществ
+                // При этом V0 + V2 + V3 = 1
+                // В зависимости от того, какое значение примет х, выбирается состав клетки
+                // 0      <= x <= V0 - пора
+                // V0      < x <= V0 + V1 - первое вещество 
+                // V0 + V1 < x <= V0 + V1 + V2 -второе вещество
+
+                Component[type].Add(i);
+
+            }
+
+
+
+
+        }
+
+        void Structure_Definition(Random sluchai)
         {
             double k;
             

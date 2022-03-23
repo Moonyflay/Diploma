@@ -33,6 +33,12 @@
             this.panel1 = new System.Windows.Forms.Panel();
             this.pictureBoxMain = new System.Windows.Forms.PictureBox();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.buttonStart2 = new System.Windows.Forms.Button();
+            this.panel3 = new System.Windows.Forms.Panel();
+            this.label_MaterialsNum = new System.Windows.Forms.Label();
+            this.nUD_MaterialsNum = new System.Windows.Forms.NumericUpDown();
+            this.label_SquareNum = new System.Windows.Forms.Label();
+            this.nUD_SquareNum = new System.Windows.Forms.NumericUpDown();
             this.buttonStart = new System.Windows.Forms.Button();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
@@ -43,6 +49,9 @@
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxMain)).BeginInit();
             this.panel2.SuspendLayout();
+            this.panel3.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.nUD_MaterialsNum)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nUD_SquareNum)).BeginInit();
             this.tabControl1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -70,12 +79,12 @@
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(205, 28);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1210, 818);
+            this.panel1.Size = new System.Drawing.Size(1210, 686);
             this.panel1.TabIndex = 1;
             // 
             // pictureBoxMain
             // 
-            this.pictureBoxMain.Location = new System.Drawing.Point(-4, 0);
+            this.pictureBoxMain.Location = new System.Drawing.Point(1, 1);
             this.pictureBoxMain.Name = "pictureBoxMain";
             this.pictureBoxMain.Size = new System.Drawing.Size(894, 559);
             this.pictureBoxMain.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -85,12 +94,99 @@
             // panel2
             // 
             this.panel2.BackColor = System.Drawing.SystemColors.Control;
+            this.panel2.Controls.Add(this.buttonStart2);
+            this.panel2.Controls.Add(this.panel3);
             this.panel2.Controls.Add(this.buttonStart);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel2.Location = new System.Drawing.Point(205, 846);
+            this.panel2.Location = new System.Drawing.Point(205, 714);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(1210, 100);
+            this.panel2.Size = new System.Drawing.Size(1210, 223);
             this.panel2.TabIndex = 2;
+            // 
+            // buttonStart2
+            // 
+            this.buttonStart2.Location = new System.Drawing.Point(1083, 98);
+            this.buttonStart2.Name = "buttonStart2";
+            this.buttonStart2.Size = new System.Drawing.Size(88, 36);
+            this.buttonStart2.TabIndex = 2;
+            this.buttonStart2.Text = "button2";
+            this.buttonStart2.UseVisualStyleBackColor = true;
+            this.buttonStart2.Click += new System.EventHandler(this.buttonStart2_Click);
+            // 
+            // panel3
+            // 
+            this.panel3.Controls.Add(this.label_MaterialsNum);
+            this.panel3.Controls.Add(this.nUD_MaterialsNum);
+            this.panel3.Controls.Add(this.label_SquareNum);
+            this.panel3.Controls.Add(this.nUD_SquareNum);
+            this.panel3.Location = new System.Drawing.Point(43, 29);
+            this.panel3.Name = "panel3";
+            this.panel3.Size = new System.Drawing.Size(355, 164);
+            this.panel3.TabIndex = 1;
+            // 
+            // label_MaterialsNum
+            // 
+            this.label_MaterialsNum.AutoSize = true;
+            this.label_MaterialsNum.Location = new System.Drawing.Point(38, 84);
+            this.label_MaterialsNum.Name = "label_MaterialsNum";
+            this.label_MaterialsNum.Size = new System.Drawing.Size(108, 17);
+            this.label_MaterialsNum.TabIndex = 3;
+            this.label_MaterialsNum.Text = "Число веществ";
+            // 
+            // nUD_MaterialsNum
+            // 
+            this.nUD_MaterialsNum.Location = new System.Drawing.Point(38, 107);
+            this.nUD_MaterialsNum.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.nUD_MaterialsNum.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.nUD_MaterialsNum.Name = "nUD_MaterialsNum";
+            this.nUD_MaterialsNum.Size = new System.Drawing.Size(120, 22);
+            this.nUD_MaterialsNum.TabIndex = 2;
+            this.nUD_MaterialsNum.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.nUD_MaterialsNum.ValueChanged += new System.EventHandler(this.numericUpDown1_ValueChanged);
+            // 
+            // label_SquareNum
+            // 
+            this.label_SquareNum.AutoSize = true;
+            this.label_SquareNum.Location = new System.Drawing.Point(38, 15);
+            this.label_SquareNum.Name = "label_SquareNum";
+            this.label_SquareNum.Size = new System.Drawing.Size(167, 17);
+            this.label_SquareNum.TabIndex = 1;
+            this.label_SquareNum.Text = "Число клеток в радиусе";
+            // 
+            // nUD_SquareNum
+            // 
+            this.nUD_SquareNum.Location = new System.Drawing.Point(38, 38);
+            this.nUD_SquareNum.Maximum = new decimal(new int[] {
+            1000,
+            0,
+            0,
+            0});
+            this.nUD_SquareNum.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.nUD_SquareNum.Name = "nUD_SquareNum";
+            this.nUD_SquareNum.Size = new System.Drawing.Size(120, 22);
+            this.nUD_SquareNum.TabIndex = 0;
+            this.nUD_SquareNum.Value = new decimal(new int[] {
+            20,
+            0,
+            0,
+            0});
+            this.nUD_SquareNum.ValueChanged += new System.EventHandler(this.nUD_SquareNum_ValueChanged);
             // 
             // buttonStart
             // 
@@ -110,7 +206,7 @@
             this.tabControl1.Location = new System.Drawing.Point(0, 28);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(200, 918);
+            this.tabControl1.Size = new System.Drawing.Size(200, 909);
             this.tabControl1.TabIndex = 3;
             // 
             // tabPage1
@@ -119,7 +215,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 25);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(192, 889);
+            this.tabPage1.Size = new System.Drawing.Size(192, 880);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "tabPage1";
             // 
@@ -128,7 +224,7 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 25);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(192, 887);
+            this.tabPage2.Size = new System.Drawing.Size(192, 889);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "tabPage2";
             this.tabPage2.UseVisualStyleBackColor = true;
@@ -137,7 +233,7 @@
             // 
             this.splitter1.BackColor = System.Drawing.SystemColors.ControlDark;
             this.splitter1.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.splitter1.Location = new System.Drawing.Point(205, 841);
+            this.splitter1.Location = new System.Drawing.Point(205, 709);
             this.splitter1.Name = "splitter1";
             this.splitter1.Size = new System.Drawing.Size(1210, 5);
             this.splitter1.TabIndex = 4;
@@ -148,7 +244,7 @@
             this.splitter2.BackColor = System.Drawing.SystemColors.ControlDark;
             this.splitter2.Location = new System.Drawing.Point(200, 28);
             this.splitter2.Name = "splitter2";
-            this.splitter2.Size = new System.Drawing.Size(5, 918);
+            this.splitter2.Size = new System.Drawing.Size(5, 909);
             this.splitter2.TabIndex = 5;
             this.splitter2.TabStop = false;
             this.splitter2.Visible = false;
@@ -157,7 +253,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1415, 946);
+            this.ClientSize = new System.Drawing.Size(1415, 937);
             this.Controls.Add(this.splitter1);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.panel2);
@@ -173,6 +269,10 @@
             this.panel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxMain)).EndInit();
             this.panel2.ResumeLayout(false);
+            this.panel3.ResumeLayout(false);
+            this.panel3.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.nUD_MaterialsNum)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nUD_SquareNum)).EndInit();
             this.tabControl1.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -192,6 +292,12 @@
         private System.Windows.Forms.Splitter splitter2;
         private System.Windows.Forms.PictureBox pictureBoxMain;
         private System.Windows.Forms.Button buttonStart;
+        private System.Windows.Forms.Panel panel3;
+        private System.Windows.Forms.Label label_SquareNum;
+        private System.Windows.Forms.NumericUpDown nUD_SquareNum;
+        private System.Windows.Forms.Button buttonStart2;
+        private System.Windows.Forms.Label label_MaterialsNum;
+        private System.Windows.Forms.NumericUpDown nUD_MaterialsNum;
     }
 }
 
