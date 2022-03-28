@@ -24,9 +24,9 @@ namespace ElasticModulus
         public  static Random sluchai = new Random();
 
         int sq_in_rad = 40; // Число клеток в радиусе
-        double fading = 0.5;
-        double transpass = 0.7;
-
+        double fading = 1.0;
+        double transpass = 0.0;
+        double transpass_ = 0.1;
         public FormMain()
         {
             InitializeComponent();
@@ -50,7 +50,7 @@ namespace ElasticModulus
             double mx = 8;
             double sigma = 0.15;
             
-            Materials[0] = new Material(0.5, 7*Pow(10, 10), 20*Pow(10,8));
+            Materials[0] = new Material(0.2, 7*Pow(10, 10), 20*Pow(10,8));
 
             Pressure = new List<double>();
             for (int i = 0; i < cell_in_col * cell_in_row; i++)
@@ -74,7 +74,7 @@ namespace ElasticModulus
             
 
             Bitmap bmp;
-            int sch_max = 1000;
+            int sch_max = 800;
             for (int sch = 0; sch < sch_max; sch++)
             {
                 
@@ -149,9 +149,21 @@ namespace ElasticModulus
                 pictureBoxMain.Image = bmp.Clone(new Rectangle(0, 0, bmp.Width, bmp.Height ), bmp.PixelFormat);
                 bmp?.Dispose();
                 pictureBoxMain.Refresh();
-                for (int tt = 0; tt < 2; tt++) // tt должно быть четным
-                { Interact(map); }
-                Apply_pressure(map, 5*Pow(10, 5));
+
+                
+                for (int tt = 0; tt < 6; tt++) // tt должно быть четным
+                {
+                    Interact(map);
+                }
+
+                for (int tt = 0; tt < 1; tt++) 
+                {
+
+                    Interact_Alt(map);
+
+                }
+                //Interact(map);
+                Apply_pressure(map, 10*Pow(10, 5));
                 //Set_P(map);
                 if(sch < 0.3*sch_max) System.Threading.Thread.Sleep(0);
                 else System.Threading.Thread.Sleep(0);
@@ -323,7 +335,7 @@ namespace ElasticModulus
             }
             for (int i = 0; i < cell_in_col * cell_in_row; i++) //при отсутствии пор!
             {
-                cell_l_d_new[0].Add(cell_size * Pow(10, -9));
+                cell_l_d_new[0].Add(cell_size * Pow(10, -9)); // -9 заменить на параметр!
                 cell_l_d_new[1].Add(cell_size * Pow(10, -9));
             }
 
@@ -346,27 +358,27 @@ namespace ElasticModulus
                         else
                             Pressure_new[num] -= Pressure[map.Num_Crypt(x - 1, y)] / 4 ;
                     }
-                   else Pressure_new[num] -= Pressure[num] / 4; 
+                   else Pressure_new[num] += Pressure[num] / 4; 
 
                     if (x + 1 < cell_in_row) 
                     {
                         if (map.Component[0].Contains(map.Num_Crypt(x + 1, y)) == true) Pressure_new[num] -= Pressure[num] / 4 * fading;
                         else Pressure_new[num] -= Pressure[map.Num_Crypt(x + 1, y)] / 4 ; 
                     }
-                    else Pressure_new[num] -= Pressure[num] / 4;
+                    else Pressure_new[num] += Pressure[num] / 4;
                     if (y - 1 >= 0)
                     {
                         if (map.Component[0].Contains(map.Num_Crypt(x, y - 1)) == true) Pressure_new[num] -= Pressure[num] / 4 * fading;
                         else  Pressure_new[num] -= Pressure[map.Num_Crypt(x, y - 1)] / 4; 
                     }
-                    else Pressure_new[num] -= Pressure[num] / 4;
+                    else Pressure_new[num] += Pressure[num] / 4;
 
                     if (y + 1 < cell_in_col)
                     {
                         if (map.Component[0].Contains(map.Num_Crypt(x, y + 1)) == true) Pressure_new[num] -= Pressure[num] / 4*fading;
                         else Pressure_new[num] -= Pressure[map.Num_Crypt(x, y + 1)] / 4;
                     }
-                    else Pressure_new[num] -= Pressure[num] / 4;
+                    else Pressure_new[num] += Pressure[num] / 4;
 
                     //Pressure_new[num] = Pressure[num]*(1- fading) + Pressure_new[num] * fading;
 
@@ -387,9 +399,118 @@ namespace ElasticModulus
                 }
 
 
+        }
 
+        void Interact_Alt(Map map)
+        {
+            List<double>[] cell_l_d_new = new List<double>[2];
+            List<double> Pressure_new = new List<double>();
+            for (int i = 0; i < cell_in_col * cell_in_row; i++) //при отсутствии пор!
+            {
+                Pressure_new.Add(0);
+            }
+
+
+             for (int k = 1; k < map.Component.Length; k++)
+                for (int i = 0; i < map.Component[k].Count; i++)
+                {
+                    int x = 0; int y = 0;
+                    int num = map.Component[k][i];
+                    map.Num_Decrypt(map.Component[k][i], ref x, ref y);
+
+                    bool[] _dir = new bool[4] { true, true, true, true };
+                    int[] dir = new int[] { 0, 0, 0, 0 };
+
+                    for (int ss = 0; ss < _dir.Length; ss++)
+                        while (_dir[ss] == true)
+                        {
+                            switch (ss)
+                            {
+                                case 0:  // влево
+                                    {
+                                        if (x - 1 - dir[ss] >= 0 && map.Component[0].Contains(map.Num_Crypt(x - 1 - dir[ss], y)) == false)
+                                            dir[ss]++;
+                                        else { _dir[ss] = false;  }
+                                        break;
+                                    }
+                                case 1: // вправо
+                                    {
+                                        if (x + 1 + dir[ss] < cell_in_row && map.Component[0].Contains(map.Num_Crypt(x + 1 + dir[ss], y)) == false)
+                                            dir[ss]++;
+                                        else { _dir[ss] = false;  }
+                                        break;
+                                    }
+                                case 2: // вниз
+                                    {
+                                        if (y - 1 - dir[ss] >= 0 && map.Component[0].Contains(map.Num_Crypt(x , y - 1 - dir[ss])) == false)
+                                            dir[ss]++;
+                                        else { _dir[ss] = false;  }
+                                        break;
+                                    }
+                                case 3: // вверх
+                                    {
+                                        if (y + 1 + dir[ss] < cell_in_col && map.Component[0].Contains(map.Num_Crypt(x , y + 1 + dir[ss])) == false)
+                                            dir[ss]++;
+                                        else { _dir[ss] = false;  }
+                                        break;
+                                    }
+                            } 
+                        }
+                    byte neigh = 4;
+                    for (int ss = 0; ss < _dir.Length; ss++)
+                    {
+                        if (dir[ss] < 1) neigh--;
+                        for (int dd = 1; dd <= dir[ss]; dd++)
+                        {
+                            
+                                switch (ss)
+                                {
+                                    case 0:
+                                        {
+                                            Pressure_new[map.Num_Crypt(x - dd, y)] += Pressure[num] / neigh / dir[ss] * Pow(transpass_, dd);
+                                            Pressure_new[num] += Pressure[num] / neigh / dir[ss] * (1 - Pow(transpass_, dd));
+                                            break;
+                                        }
+                                    case 1:
+                                        {
+                                            Pressure_new[map.Num_Crypt(x + dd, y)] += Pressure[num] / neigh / dir[ss] * Pow(transpass_, dd);
+                                            Pressure_new[num] += Pressure[num] / neigh / dir[ss] * (1 - Pow(transpass_, dd));
+                                            break;
+                                        }
+                                    case 2:
+                                        {
+                                            Pressure_new[map.Num_Crypt(x, y - dd)] += Pressure[num] / neigh / dir[ss] * Pow(transpass_, dd);
+                                            Pressure_new[num] += Pressure[num] / neigh / dir[ss] * (1 - Pow(transpass_, dd));
+                                            break;
+                                        }
+                                    case 3:
+                                        {
+                                            Pressure_new[map.Num_Crypt(x, y + dd)] += Pressure[num] / neigh / dir[ss] * Pow(transpass_, dd);
+                                            Pressure_new[num] += Pressure[num] / neigh / dir[ss] * (1 - Pow(transpass_, dd));
+                                            break;
+                                        }
+                                }
+                             
+
+                        }
+                    }
+
+                    
+                    
+                }
+
+
+            for (int k = 1; k < map.Component.Length; k++)
+                for (int i = 0; i < map.Component[k].Count; i++)
+                {
+                    int num = map.Component[k][i];
+                    Pressure[num] = Pressure_new[num];
+                    
+                }
+           
 
         }
+
 
         Color Color_Define(double x, double max) //Для отрицательных и положительных нагрузок
         {

@@ -62,7 +62,7 @@
             this.файлToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(1415, 28);
+            this.menuStrip1.Size = new System.Drawing.Size(1406, 28);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -79,7 +79,7 @@
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(205, 28);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1210, 686);
+            this.panel1.Size = new System.Drawing.Size(1201, 799);
             this.panel1.TabIndex = 1;
             // 
             // pictureBoxMain
@@ -98,9 +98,9 @@
             this.panel2.Controls.Add(this.panel3);
             this.panel2.Controls.Add(this.buttonStart);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel2.Location = new System.Drawing.Point(205, 714);
+            this.panel2.Location = new System.Drawing.Point(205, 827);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(1210, 223);
+            this.panel2.Size = new System.Drawing.Size(1201, 223);
             this.panel2.TabIndex = 2;
             // 
             // buttonStart2
@@ -206,7 +206,7 @@
             this.tabControl1.Location = new System.Drawing.Point(0, 28);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(200, 909);
+            this.tabControl1.Size = new System.Drawing.Size(200, 1022);
             this.tabControl1.TabIndex = 3;
             // 
             // tabPage1
@@ -215,7 +215,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 25);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(192, 880);
+            this.tabPage1.Size = new System.Drawing.Size(192, 993);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "tabPage1";
             // 
@@ -224,7 +224,7 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 25);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(192, 889);
+            this.tabPage2.Size = new System.Drawing.Size(192, 880);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "tabPage2";
             this.tabPage2.UseVisualStyleBackColor = true;
@@ -233,9 +233,9 @@
             // 
             this.splitter1.BackColor = System.Drawing.SystemColors.ControlDark;
             this.splitter1.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.splitter1.Location = new System.Drawing.Point(205, 709);
+            this.splitter1.Location = new System.Drawing.Point(205, 822);
             this.splitter1.Name = "splitter1";
-            this.splitter1.Size = new System.Drawing.Size(1210, 5);
+            this.splitter1.Size = new System.Drawing.Size(1201, 5);
             this.splitter1.TabIndex = 4;
             this.splitter1.TabStop = false;
             // 
@@ -244,7 +244,7 @@
             this.splitter2.BackColor = System.Drawing.SystemColors.ControlDark;
             this.splitter2.Location = new System.Drawing.Point(200, 28);
             this.splitter2.Name = "splitter2";
-            this.splitter2.Size = new System.Drawing.Size(5, 909);
+            this.splitter2.Size = new System.Drawing.Size(5, 1022);
             this.splitter2.TabIndex = 5;
             this.splitter2.TabStop = false;
             this.splitter2.Visible = false;
@@ -253,7 +253,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1415, 937);
+            this.ClientSize = new System.Drawing.Size(1406, 1050);
             this.Controls.Add(this.splitter1);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.panel2);
