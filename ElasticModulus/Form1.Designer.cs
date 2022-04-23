@@ -33,6 +33,10 @@
             this.panel1 = new System.Windows.Forms.Panel();
             this.pictureBoxMain = new System.Windows.Forms.PictureBox();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.panel4 = new System.Windows.Forms.Panel();
+            this.rBsigma_y = new System.Windows.Forms.RadioButton();
+            this.rBsigma_x = new System.Windows.Forms.RadioButton();
+            this.rBBoth = new System.Windows.Forms.RadioButton();
             this.buttonStart2 = new System.Windows.Forms.Button();
             this.panel3 = new System.Windows.Forms.Panel();
             this.label_MaterialsNum = new System.Windows.Forms.Label();
@@ -45,10 +49,12 @@
             this.tabPage2 = new System.Windows.Forms.TabPage();
             this.splitter1 = new System.Windows.Forms.Splitter();
             this.splitter2 = new System.Windows.Forms.Splitter();
+            this.rBAngle = new System.Windows.Forms.RadioButton();
             this.menuStrip1.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxMain)).BeginInit();
             this.panel2.SuspendLayout();
+            this.panel4.SuspendLayout();
             this.panel3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nUD_MaterialsNum)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nUD_SquareNum)).BeginInit();
@@ -62,14 +68,14 @@
             this.файлToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(1406, 28);
+            this.menuStrip1.Size = new System.Drawing.Size(1406, 30);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
             // файлToolStripMenuItem
             // 
             this.файлToolStripMenuItem.Name = "файлToolStripMenuItem";
-            this.файлToolStripMenuItem.Size = new System.Drawing.Size(59, 24);
+            this.файлToolStripMenuItem.Size = new System.Drawing.Size(59, 26);
             this.файлToolStripMenuItem.Text = "Файл";
             // 
             // panel1
@@ -77,9 +83,9 @@
             this.panel1.AutoScroll = true;
             this.panel1.Controls.Add(this.pictureBoxMain);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel1.Location = new System.Drawing.Point(205, 28);
+            this.panel1.Location = new System.Drawing.Point(205, 30);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1201, 799);
+            this.panel1.Size = new System.Drawing.Size(1201, 797);
             this.panel1.TabIndex = 1;
             // 
             // pictureBoxMain
@@ -94,6 +100,7 @@
             // panel2
             // 
             this.panel2.BackColor = System.Drawing.SystemColors.Control;
+            this.panel2.Controls.Add(this.panel4);
             this.panel2.Controls.Add(this.buttonStart2);
             this.panel2.Controls.Add(this.panel3);
             this.panel2.Controls.Add(this.buttonStart);
@@ -102,6 +109,52 @@
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(1201, 223);
             this.panel2.TabIndex = 2;
+            // 
+            // panel4
+            // 
+            this.panel4.Controls.Add(this.rBAngle);
+            this.panel4.Controls.Add(this.rBsigma_y);
+            this.panel4.Controls.Add(this.rBsigma_x);
+            this.panel4.Controls.Add(this.rBBoth);
+            this.panel4.Location = new System.Drawing.Point(797, 29);
+            this.panel4.Name = "panel4";
+            this.panel4.Size = new System.Drawing.Size(234, 164);
+            this.panel4.TabIndex = 3;
+            // 
+            // rBsigma_y
+            // 
+            this.rBsigma_y.AutoSize = true;
+            this.rBsigma_y.Location = new System.Drawing.Point(33, 108);
+            this.rBsigma_y.Name = "rBsigma_y";
+            this.rBsigma_y.Size = new System.Drawing.Size(83, 21);
+            this.rBsigma_y.TabIndex = 2;
+            this.rBsigma_y.Text = "Sigma_y";
+            this.rBsigma_y.UseVisualStyleBackColor = true;
+            this.rBsigma_y.CheckedChanged += new System.EventHandler(this.rBsigma_y_CheckedChanged);
+            // 
+            // rBsigma_x
+            // 
+            this.rBsigma_x.AutoSize = true;
+            this.rBsigma_x.Location = new System.Drawing.Point(33, 66);
+            this.rBsigma_x.Name = "rBsigma_x";
+            this.rBsigma_x.Size = new System.Drawing.Size(82, 21);
+            this.rBsigma_x.TabIndex = 1;
+            this.rBsigma_x.Text = "Sigma_x";
+            this.rBsigma_x.UseVisualStyleBackColor = true;
+            this.rBsigma_x.CheckedChanged += new System.EventHandler(this.rBsigma_x_CheckedChanged);
+            // 
+            // rBBoth
+            // 
+            this.rBBoth.AutoSize = true;
+            this.rBBoth.Checked = true;
+            this.rBBoth.Location = new System.Drawing.Point(33, 24);
+            this.rBBoth.Name = "rBBoth";
+            this.rBBoth.Size = new System.Drawing.Size(58, 21);
+            this.rBBoth.TabIndex = 0;
+            this.rBBoth.TabStop = true;
+            this.rBBoth.Text = "Both";
+            this.rBBoth.UseVisualStyleBackColor = true;
+            this.rBBoth.CheckedChanged += new System.EventHandler(this.rBBoth_CheckedChanged);
             // 
             // buttonStart2
             // 
@@ -203,10 +256,10 @@
             this.tabControl1.Controls.Add(this.tabPage1);
             this.tabControl1.Controls.Add(this.tabPage2);
             this.tabControl1.Dock = System.Windows.Forms.DockStyle.Left;
-            this.tabControl1.Location = new System.Drawing.Point(0, 28);
+            this.tabControl1.Location = new System.Drawing.Point(0, 30);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(200, 1022);
+            this.tabControl1.Size = new System.Drawing.Size(200, 1020);
             this.tabControl1.TabIndex = 3;
             // 
             // tabPage1
@@ -215,7 +268,7 @@
             this.tabPage1.Location = new System.Drawing.Point(4, 25);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(192, 993);
+            this.tabPage1.Size = new System.Drawing.Size(192, 991);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "tabPage1";
             // 
@@ -224,7 +277,7 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 25);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(192, 880);
+            this.tabPage2.Size = new System.Drawing.Size(192, 993);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "tabPage2";
             this.tabPage2.UseVisualStyleBackColor = true;
@@ -242,12 +295,24 @@
             // splitter2
             // 
             this.splitter2.BackColor = System.Drawing.SystemColors.ControlDark;
-            this.splitter2.Location = new System.Drawing.Point(200, 28);
+            this.splitter2.Location = new System.Drawing.Point(200, 30);
             this.splitter2.Name = "splitter2";
-            this.splitter2.Size = new System.Drawing.Size(5, 1022);
+            this.splitter2.Size = new System.Drawing.Size(5, 1020);
             this.splitter2.TabIndex = 5;
             this.splitter2.TabStop = false;
             this.splitter2.Visible = false;
+            // 
+            // rBAngle
+            // 
+            this.rBAngle.AutoSize = true;
+            this.rBAngle.Location = new System.Drawing.Point(146, 24);
+            this.rBAngle.Name = "rBAngle";
+            this.rBAngle.Size = new System.Drawing.Size(65, 21);
+            this.rBAngle.TabIndex = 3;
+            this.rBAngle.TabStop = true;
+            this.rBAngle.Text = "Angle";
+            this.rBAngle.UseVisualStyleBackColor = true;
+            this.rBAngle.CheckedChanged += new System.EventHandler(this.rBAngle_CheckedChanged);
             // 
             // FormMain
             // 
@@ -269,6 +334,8 @@
             this.panel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxMain)).EndInit();
             this.panel2.ResumeLayout(false);
+            this.panel4.ResumeLayout(false);
+            this.panel4.PerformLayout();
             this.panel3.ResumeLayout(false);
             this.panel3.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.nUD_MaterialsNum)).EndInit();
@@ -298,6 +365,11 @@
         private System.Windows.Forms.Button buttonStart2;
         private System.Windows.Forms.Label label_MaterialsNum;
         private System.Windows.Forms.NumericUpDown nUD_MaterialsNum;
+        private System.Windows.Forms.Panel panel4;
+        private System.Windows.Forms.RadioButton rBsigma_y;
+        private System.Windows.Forms.RadioButton rBsigma_x;
+        private System.Windows.Forms.RadioButton rBBoth;
+        private System.Windows.Forms.RadioButton rBAngle;
     }
 }
 

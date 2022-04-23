@@ -47,7 +47,7 @@ namespace ElasticModulus
 
             sq_in_rad = _sq_in_rad;
 
-            if (def == true) { Round_Structure_Definition(FormMain.sluchai); /*Middle_Path(FormMain.sluchai);*/ }
+            if (def == true) { Round_Structure_Definition(FormMain.sluchai); /*Middle_Path(FormMain.sluchai);*/ } //!!!!!!!!!!!!!!!!
 
             }
         public Map(int _sq_in_rad, double[] _vol_frac, int _cell_in_row, int _cell_in_col, double _mind, double _maxd, double _mx, double _sigma, double _cell_size) :  this(_sq_in_rad, _vol_frac, _cell_in_row, _cell_in_col, _cell_size, false)
@@ -57,8 +57,8 @@ namespace ElasticModulus
             maxd = _maxd;
             mx = _mx;
             sigma = _sigma;
-            Round_Structure_Definition(FormMain.sluchai);
-            
+            Round_Structure_Definition(FormMain.sluchai); //!!!!!!!!!!!!!!!!
+
             //Middle_Path(FormMain.sluchai);
         }
 
