@@ -24,6 +24,7 @@ namespace ElasticModulus
         List<double> Pressure_x;
         List<double> Pressure_y;
         List<double> Angle;
+        List<double> Shear;
         
         double[] vol_frac;
         Material[] Materials;
@@ -34,7 +35,7 @@ namespace ElasticModulus
         double transpass = 0.0;
         double transpass_ = 0.0;
 
-        delegate Color color_def_f(double _a, double _b);
+        delegate Color color_def_f(double _a, double _b, double _cut = 1);
         public FormMain()
         {
             InitializeComponent();
@@ -66,12 +67,14 @@ namespace ElasticModulus
             Pressure_x = new List<double>();
             Pressure_y = new List<double>();
             Angle = new List<double>();
+            Shear = new List<double>();
             for (int i = 0; i < cell_in_col * cell_in_row; i++)
             {
                 Pressure.Add(0);
                 Pressure_x.Add(0);
                 Pressure_y.Add(0);
                 Angle.Add(0);
+                Shear.Add(0);
             }  
 
             for (int i = 0; i < cell_l_d.Length; i++)
@@ -89,14 +92,15 @@ namespace ElasticModulus
             map = new Map(sq_in_rad, vol_frac, cell_in_row, cell_in_col, cell_size);
             
 
-            int sch_max = 400;
+            int sch_max = 200;
             for (int sch = 0; sch < sch_max; sch++)
             {
-                // switch
+                // switch или делегат
                 if (rBBoth.Checked == true)
                     Display(map, Pressure, Color_Define_Alt);
                 else if (rBsigma_x.Checked == true) Display(map, Pressure_x, Color_Define_Alt);
                 else if (rBsigma_y.Checked == true) Display(map, Pressure_y, Color_Define_Alt);
+                else if(rBShear.Checked == true) Display(map, Shear, Color_Define_Alt);
                 else Display(map, Angle, Color_Define_Alt);
 
                 //            Count_dl(out double rec_da, out double rec_db, Materials[k-1].elastic_m, Materials[k-1].p_ratio, Pressure[map.Component[k][i]], cell_size * Pow(10, -9));
@@ -109,24 +113,25 @@ namespace ElasticModulus
                 for (int tt = 0; tt < 2; tt++) // tt должно быть четным
                 {
                    Interact(map);
+                    
                 }
 
                 //for (int tt = 0; tt < 1; tt++) 
                 //{
                 //   Interact_Alt(map);
                 //}
-               
-                Apply_pressure(map, 10*Pow(10, 5));
                 Count_Angle(map);
-                if(sch < 0.3*sch_max) System.Threading.Thread.Sleep(0);
-                else System.Threading.Thread.Sleep(0);
+                Apply_pressure(map, 10*Pow(10, 5));
+                
+                //if(sch < 0.3*sch_max) System.Threading.Thread.Sleep(0);
+                //else System.Threading.Thread.Sleep(0);
 
             }
             
         }
 
 
-        void Display(Map map, List<double> Press,color_def_f Color_Def_F)
+        void Display(Map map, List<double> Press,color_def_f Color_Def_F, double cut = 1)
         {
             double max_P = Max_P();
 
@@ -151,11 +156,11 @@ namespace ElasticModulus
                         int rec_b = (int)(cell_size_pix + rec_db * convert_size); 
                         rect = new Rectangle(rec_x, rec_y, rec_a - 5, rec_b - 5);
                         Color rect_color;
-                        if (rBAngle.Checked == false && Abs(Press[map.Component[k][i]]) >= Materials[k - 1].compr_strength) // Abs(Pressure_x[map.Component[k][i]] + Pressure_y[map.Component[k][i]])
+                        if (rBAngle.Checked == false && rBShear.Checked == false && Abs(Press[map.Component[k][i]]) >= Materials[k - 1].compr_strength) // Abs(Pressure_x[map.Component[k][i]] + Pressure_y[map.Component[k][i]])
                         { 
                             rect_color = Color.Gray;
                         }
-                        else rect_color = Color_Def_F(Press[map.Component[k][i]], max_P);  
+                        else rect_color = Color_Def_F(Press[map.Component[k][i]], max_P, cut);  
                         g.FillRectangle(new SolidBrush(rect_color), rect); continue;
                     }
             }
@@ -294,15 +299,17 @@ namespace ElasticModulus
                 {
                     if (map.Component[0].Contains(map.Num_Crypt(x, y)) == false)
                     { 
-                        Pressure[map.Num_Crypt(x, y)] += app_press;
-                        Pressure_y[map.Num_Crypt(x, y)] -= app_press;
+                        Pressure[map.Num_Crypt(x, y)] += app_press * Cos(Angle[map.Num_Crypt(x, y)]);
+                        Pressure_y[map.Num_Crypt(x, y)] += app_press * Cos(Angle[map.Num_Crypt(x, y)]);
+                        Shear[map.Num_Crypt(x, y)] += app_press * Sin(Angle[map.Num_Crypt(x, y)]);
                         if (x > xmax) xmax = x;
                         if (xmin > x) xmin = x;
                     }
                     if (map.Component[0].Contains(map.Num_Crypt(x, cell_in_col - y - 1)) == false)
                     { 
-                        Pressure[map.Num_Crypt(x, cell_in_col - y - 1)] += app_press;
-                        Pressure_y[map.Num_Crypt(x, cell_in_col - y - 1)] -= app_press;
+                        Pressure[map.Num_Crypt(x, cell_in_col - y - 1)] += app_press * Cos(Angle[map.Num_Crypt(x, cell_in_col - y - 1)]);
+                        Pressure_y[map.Num_Crypt(x, cell_in_col - y - 1)] += app_press * Cos(Angle[map.Num_Crypt(x, cell_in_col - y - 1)]);
+                        Shear[map.Num_Crypt(x, cell_in_col - y - 1)] += app_press * Sin(Angle[map.Num_Crypt(x, cell_in_col - y - 1)]);
                         if (x > xmax) xmax = x;
                         if (xmin > x) xmin = x;
                     }
@@ -314,8 +321,8 @@ namespace ElasticModulus
                     {                        
                             Pressure[map.Num_Crypt(x, y)] += app_press * Pow(transpass, y - affected_cells+1);
                             Pressure[map.Num_Crypt(x, y)] += app_press * Pow(transpass, cell_in_col - y - affected_cells);
-                        Pressure_y[map.Num_Crypt(x, y)] -= app_press * Pow(transpass, y - affected_cells + 1);
-                        Pressure_y[map.Num_Crypt(x, y)] -= app_press * Pow(transpass, cell_in_col - y - affected_cells);
+                        Pressure_y[map.Num_Crypt(x, y)] += app_press * Pow(transpass, y - affected_cells + 1);
+                        Pressure_y[map.Num_Crypt(x, y)] += app_press * Pow(transpass, cell_in_col - y - affected_cells);
                     }
 
                 }
@@ -340,12 +347,14 @@ namespace ElasticModulus
             List<double> Pressure_new = new List<double>();
             List<double> Pressure_new_x = new List<double>();
             List<double> Pressure_new_y = new List<double>();
+            List<double> Shear_new = new List<double>();
 
             for (int i = 0; i < cell_in_col * cell_in_row; i++)
             {
                 Pressure_new.Add(0);
                 Pressure_new_x.Add(0);
                 Pressure_new_y.Add(0);
+                Shear_new.Add(0);
             }
 
             for (int k = 1; k < map.Component.Length; k++)
@@ -363,29 +372,52 @@ namespace ElasticModulus
 
                     if (x - 1 >= 0)
                     {
-                        if (map.Component[0].Contains(map.Num_Crypt(x - 1, y)) == true) { Pressure_new[num] -= Pressure[num] / neigh * fading; Pressure_new_x[num] -= Pressure[num] / neigh * fading; }
+                        int num_1 = map.Num_Crypt(x - 1, y);
+                        if (map.Component[0].Contains(num_1) == true) { Pressure_new[num] -= Pressure[num] / neigh * fading; Pressure_new_x[num] -= Pressure[num] / neigh * fading; }
                         else
-                        { Pressure_new[num] -= Pressure[map.Num_Crypt(x - 1, y)] / neigh; Pressure_new_x[num] -= Pressure[map.Num_Crypt(x - 1, y)] / neigh; }
+                        { 
+                            Pressure_new[num] -= Pressure[num_1] / neigh * Cos(Angle[num_1] - Angle[num]); 
+                            Pressure_new_x[num] -= Pressure[num_1] / neigh * Cos(Angle[num_1] - Angle[num]); 
+                            Shear_new[num] -= Pressure[num_1] / neigh * Sin(Angle[num] - Angle[num_1]);
+                        }
                     }
                     else { Pressure_new[num] -= Pressure[num] / neigh * fading; Pressure_new_x[num] -= Pressure[num] / neigh * fading; }
 
                     if (x + 1 < cell_in_row)
                     {
-                        if (map.Component[0].Contains(map.Num_Crypt(x + 1, y)) == true) { Pressure_new[num] -= Pressure[num] / neigh * fading; Pressure_new_x[num] -= Pressure[num] / neigh * fading; }
-                        else { Pressure_new[num] -= Pressure[map.Num_Crypt(x + 1, y)] / neigh; Pressure_new_x[num] -= Pressure[map.Num_Crypt(x + 1, y)] / neigh; }
+                        int num_1 = map.Num_Crypt(x + 1, y);
+                        if (map.Component[0].Contains(num_1) == true) { Pressure_new[num] -= Pressure[num] / neigh * fading; Pressure_new_x[num] -= Pressure[num] / neigh * fading; }
+                        else 
+                        { 
+                            Pressure_new[num] -= Pressure[num_1] / neigh * Cos(Angle[num_1] - Angle[num]); 
+                            Pressure_new_x[num] -= Pressure[num_1] / neigh * Cos(Angle[num_1] - Angle[num]);
+                            Shear_new[num] -= Pressure[num_1] / neigh * Sin(Angle[num] - Angle[num_1]);
+                        }
                     }
                     else { Pressure_new[num] -= Pressure[num] / neigh * fading; Pressure_new_x[num] -= Pressure[num] / neigh * fading; }
                     if (y - 1 >= 0)
                     {
-                        if (map.Component[0].Contains(map.Num_Crypt(x, y - 1)) == true) { Pressure_new[num] -= Pressure[num] / neigh * fading; Pressure_new_y[num] -= Pressure[num] / neigh * fading; }
-                        else { Pressure_new[num] -= Pressure[map.Num_Crypt(x, y - 1)] / neigh; Pressure_new_y[num] -= Pressure[map.Num_Crypt(x, y - 1)] / neigh; }
+                        int num_1 = map.Num_Crypt(x, y - 1);
+                        if (map.Component[0].Contains(num_1) == true) { Pressure_new[num] -= Pressure[num] / neigh * fading; Pressure_new_y[num] -= Pressure[num] / neigh * fading; }
+                        else 
+                        { 
+                            Pressure_new[num] -= Pressure[num_1] / neigh * Cos(Angle[num_1] - Angle[num]); 
+                            Pressure_new_y[num] -= Pressure[num_1] / neigh * Cos(Angle[num_1] - Angle[num]);
+                            Shear_new[num] -= Pressure[num_1] / neigh * Sin(Angle[num] - Angle[num_1]);
+                        }
                     }
                     else { Pressure_new[num] -= Pressure[num] / neigh * fading; Pressure_new_y[num] -= Pressure[num] / neigh * fading; }
 
                     if (y + 1 < cell_in_col)
                     {
-                        if (map.Component[0].Contains(map.Num_Crypt(x, y + 1)) == true) { Pressure_new[num] -= Pressure[num] / neigh * fading; Pressure_new_y[num] -= Pressure[num] / neigh * fading; }
-                        else { Pressure_new[num] -= Pressure[map.Num_Crypt(x, y + 1)] / neigh; Pressure_new_y[num] -= Pressure[map.Num_Crypt(x, y + 1)] / neigh; }
+                        int num_1 = map.Num_Crypt(x, y + 1);
+                        if (map.Component[0].Contains(num_1) == true) { Pressure_new[num] -= Pressure[num] / neigh * fading; Pressure_new_y[num] -= Pressure[num] / neigh * fading; }
+                        else 
+                        {
+                            Pressure_new[num] -= Pressure[num_1] / neigh * Cos(Angle[num_1] - Angle[num]);
+                            Pressure_new_y[num] -= Pressure[num_1] / neigh * Cos(Angle[num_1] - Angle[num]);
+                            Shear_new[num] -= Pressure[num_1] / neigh * Sin(Angle[num] - Angle[num_1]);
+                        }
                     }
                     else { Pressure_new[num] -= Pressure[num] / neigh * fading; Pressure_new_y[num] -= Pressure[num] / neigh * fading; }
 
@@ -404,6 +436,7 @@ namespace ElasticModulus
                     Pressure[num] = Pressure_new[num];
                     Pressure_x[num] = Pressure_new_x[num];
                     Pressure_y[num] = Pressure_new_y[num];
+                    Shear[num] = Shear_new[num];
                     cell_l_d[0][num] = cell_l_d_new[0][num];
                     cell_l_d[1][num] = cell_l_d_new[1][num];
 
@@ -525,12 +558,16 @@ namespace ElasticModulus
         }
 
 
-        Color Color_Define(double x, double max) //Для отрицательных и положительных нагрузок
+        Color Color_Define(double x, double max, double cut = 1) //Для отрицательных и положительных нагрузок
         {
             double ratio = x/max;
             int red = 0;
             int green = 0;
             int blue = 0;
+
+            if (Abs(ratio) > cut) return Color.HotPink;
+            else ratio /= cut;
+
             if (ratio <= -0.5) 
             {
                 blue = 255;
@@ -557,13 +594,16 @@ namespace ElasticModulus
             return Color.FromArgb(red, green, blue); 
         }
 
-        Color Color_Define_Alt(double x, double max) //Для положительных нагрузок
+        Color Color_Define_Alt(double x, double max, double cut = 1) //Для положительных нагрузок
         {
             double ratio = x / max;
             int red = 0;
             int green = 0;
             int blue = 0;
-             
+
+            if (Abs(ratio) > cut) return Color.HotPink;
+            else ratio /= cut;
+
             if (ratio <0) return Color.WhiteSmoke;
             
             if (ratio <= 0.25)
@@ -591,6 +631,80 @@ namespace ElasticModulus
             return Color.FromArgb(red, green, blue);
             
         }
+        Color Color_Define_Weird(double x, double max, double cut = 1) //Логарифмическая шкала, только +
+        {
+            double ratio = x / max;
+            int red = 0;
+            int green = 0;
+            int blue = 0;
+
+            if (Abs(ratio) > cut) return Color.HotPink;
+            else ratio /= cut;
+
+            if (ratio < 0) return Color.WhiteSmoke;
+
+            if (ratio <= 1- Log10(7.75))
+            {
+                blue = 255;
+                green = (int)(235 * ratio / (1 - Log10(7.75)));
+            }
+            if (ratio > 1 - Log10(7.75) && ratio < 1 - Log10(5.5))
+            {
+
+                green = 235;
+                blue = (int)(255 * (1 - Log10(5.5) - ratio) / (Log10(7.75) - Log10(5.5)));
+            }
+            if (ratio >= 1 - Log10(5.5) && ratio < 1 - Log10(3.25))
+            {
+                red = (int)(255 * (ratio - 1 + Log10(5.5)) / (Log10(5.5) - Log10(3.25)));
+                green = 235;
+
+            }
+            if (ratio >= 1 - Log10(3.25))
+            {
+                red = 255;
+                green = (int)(235 * (1 - ratio) / (Log10(3.25)));
+            }
+            return Color.FromArgb(red, green, blue);
+
+        }
+        Color Color_Define_Weird_Alt(double x, double max, double cut = 1) //Логарифмическая шкала, модуль
+        {
+            double ratio = Abs(x / max);
+            int red = 0;
+            int green = 0;
+            int blue = 0;
+
+            if (Abs(ratio) > cut) return Color.HotPink;
+            else ratio /= cut;
+
+            if (ratio < 0) return Color.WhiteSmoke;
+
+            if (ratio <= 1 - Log10(7.75))
+            {
+                blue = 255;
+                green = (int)(235 * ratio / (1 - Log10(7.75)));
+            }
+            if (ratio > 1 - Log10(7.75) && ratio < 1 - Log10(5.5))
+            {
+
+                green = 235;
+                blue = (int)(255 * (1 - Log10(5.5) - ratio) / (Log10(7.75) - Log10(5.5)));
+            }
+            if (ratio >= 1 - Log10(5.5) && ratio < 1 - Log10(3.25))
+            {
+                red = (int)(255 * (ratio - 1 + Log10(5.5)) / (Log10(5.5) - Log10(3.25)));
+                green = 235;
+
+            }
+            if (ratio >= 1 - Log10(3.25))
+            {
+                red = 255;
+                green = (int)(235 * (1 - ratio) / (Log10(3.25)));
+            }
+            return Color.FromArgb(red, green, blue);
+
+        }
 
         void Count_Angle(Map map)
         {
@@ -608,7 +722,7 @@ namespace ElasticModulus
                     double[] theta = new double[4] { 0, 0, 0, 0 };
 
                     // Учитываются только соседи на углах
-                    if (x - 1 >= 0 && y - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x - 1, y - 1)) == false) // слева сверху
+                    if (x - 1 >= 0 && y - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x - 1, y - 1)) == false && Pressure[map.Num_Crypt(x - 1, y - 1)] != 0) // слева сверху
                     {
                         int num1 = map.Num_Crypt(x - 1, y - 1);
                         int kk = 1; // индекс материала соседа
@@ -620,14 +734,16 @@ namespace ElasticModulus
 
                         Count_dl(out double a, out double b, Materials[k - 1].elastic_m, Materials[k - 1].p_ratio, Pressure[num], cell_size);
                         double c = 0.5 * Sqrt((cell_size + a) * (cell_size + a) + (cell_size + b) * (cell_size + b));
+                        double alpha = Atan((cell_size + b) / (cell_size + a));
                         Count_dl(out double a1, out double b1, Materials[kk - 1].elastic_m, Materials[kk - 1].p_ratio, Pressure[num1], cell_size);
-                        double d = Sqrt(a1 * a1 + b1 * b1);
-                        double f = Sqrt(c * c + d * d); //- 2 * c * d * Cos(PI/2)   // Pi/2?
+                        double d = Sqrt(a1 * a1 + b1 * b1) * 0.5;
+                        double beta = Acos((a1 * a1 - b1 * b1 + d * d * 4) / (4 * a1 * d));
+                        double f = Sqrt(c * c + d * d - 2 * c * d * Cos(PI - alpha - beta + Angle[num1]));// Pi/2?
                         theta[0] = Acos(c / f);
                         if (Pressure[num1] < 0) theta[0] *= -1; 
                     }
 
-                    if (x + 1 < cell_in_row && y - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x + 1, y - 1)) == false) // справа сверху
+                    if (x + 1 < cell_in_row && y - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x + 1, y - 1)) == false && Pressure[map.Num_Crypt(x + 1, y - 1)] != 0) // справа сверху
                     {
                         int num1 = map.Num_Crypt(x + 1, y - 1);
                         int kk = 1; // индекс материала соседа
@@ -639,13 +755,15 @@ namespace ElasticModulus
 
                         Count_dl(out double a, out double b, Materials[k - 1].elastic_m, Materials[k - 1].p_ratio, Pressure[num], cell_size);
                         double c = 0.5 * Sqrt((cell_size + a) * (cell_size + a) + (cell_size + b) * (cell_size + b));
+                        double alpha = Atan((cell_size + b) / (cell_size + a));
                         Count_dl(out double a1, out double b1, Materials[kk - 1].elastic_m, Materials[kk - 1].p_ratio, Pressure[num1], cell_size);
-                        double d = Sqrt(a1 * a1 + b1 * b1);
-                        double f = Sqrt(c * c + d * d); //- 2 * c * d * Cos(PI/2)   // Pi/2?
+                        double d = Sqrt(a1 * a1 + b1 * b1) * 0.5;
+                        double beta = Acos((a1 * a1 - b1 * b1 + d * d * 4) / (4 * a1 * d));
+                        double f = Sqrt(c * c + d * d - 2 * c * d * Cos(PI - alpha - beta + Angle[num1])); //- 2 * c * d * Cos(PI/2)   // Pi/2?
                         theta[1] = Acos(c / f);
                         if (Pressure[num1] > 0) theta[1] *= -1;
                     }
-                    if (x - 1 >= 0 && y + 1 < cell_in_col && map.Component[0].Contains(map.Num_Crypt(x - 1, y + 1)) == false) // слева снизу
+                    if (x - 1 >= 0 && y + 1 < cell_in_col && map.Component[0].Contains(map.Num_Crypt(x - 1, y + 1)) == false && Pressure[map.Num_Crypt(x - 1, y + 1)] != 0) // слева снизу
                     {
                         int num1 = map.Num_Crypt(x - 1, y + 1);
                         int kk = 1; // индекс материала соседа
@@ -657,14 +775,16 @@ namespace ElasticModulus
 
                         Count_dl(out double a, out double b, Materials[k - 1].elastic_m, Materials[k - 1].p_ratio, Pressure[num], cell_size);
                         double c = 0.5 * Sqrt((cell_size + a) * (cell_size + a) + (cell_size + b) * (cell_size + b));
+                        double alpha = Atan((cell_size + b) / (cell_size + a));
                         Count_dl(out double a1, out double b1, Materials[kk - 1].elastic_m, Materials[kk - 1].p_ratio, Pressure[num1], cell_size);
-                        double d = Sqrt(a1 * a1 + b1 * b1);
-                        double f = Sqrt(c * c + d * d); //- 2 * c * d * Cos(PI/2)   // Pi/2?
+                        double d = Sqrt(a1 * a1 + b1 * b1) * 0.5;
+                        double beta = Acos((a1 * a1 - b1 * b1 + d * d * 4) / (4 * a1 * d));
+                        double f = Sqrt(c * c + d * d - 2 * c * d * Cos(PI - alpha - beta + Angle[num1]));   // Pi/2?
                         theta[2] = Acos(c / f);
                         if (Pressure[num1] > 0) theta[2] *= -1;
                     }
 
-                    if (x + 1 < cell_in_row && y + 1 < cell_in_col && map.Component[0].Contains(map.Num_Crypt(x + 1, y + 1)) == false) // справа снизу
+                    if (x + 1 < cell_in_row && y + 1 < cell_in_col && map.Component[0].Contains(map.Num_Crypt(x + 1, y + 1)) == false && Pressure[map.Num_Crypt(x + 1, y + 1)] != 0 ) // справа снизу
                     {
                         int num1 = map.Num_Crypt(x + 1, y + 1);
                         int kk = 1; // индекс материала соседа
@@ -675,10 +795,14 @@ namespace ElasticModulus
                         }
 
                         Count_dl(out double a, out double b, Materials[k - 1].elastic_m, Materials[k - 1].p_ratio, Pressure[num], cell_size);
-                        double c = 0.5 * Sqrt((cell_size + a) * (cell_size + a) + (cell_size + b) * (cell_size + b));
+                        double c = 0.5 * Sqrt((cell_size + a) * (cell_size + a) + (cell_size + b) * (cell_size + b)); // определение величины половины диагонали центральной клетки
+                        double alpha = Atan((cell_size + b) / (cell_size + a));
+                        
                         Count_dl(out double a1, out double b1, Materials[kk - 1].elastic_m, Materials[kk - 1].p_ratio, Pressure[num1], cell_size);
-                        double d = Sqrt(a1 * a1 + b1 * b1);
-                        double f = Sqrt(c * c + d * d); //- 2 * c * d * Cos(PI/2)   // Pi/2?
+                        double d = Sqrt(a1 * a1 + b1 * b1) * 0.5;
+                        double beta = Acos((a1 * a1 - b1 * b1 + d * d*4) / (4 * a1 * d));
+
+                        double f = Sqrt(c * c + d * d - 2 * c * d * Cos(PI - alpha - beta + Angle[num1]));   // Pi/2?
                         theta[3] = Acos(c / f);
                         if (Pressure[num1] < 0) theta[3] *= -1;
                     }
@@ -712,6 +836,16 @@ namespace ElasticModulus
             {
                 if (Pressure_y.Max() > Abs(Pressure_y.Min())) max_P = Pressure_y.Max();
                 else max_P = Abs(Pressure_y.Min());
+            }
+            else if (rBsigma_y.Checked == true)
+            {
+                if (Pressure_y.Max() > Abs(Pressure_y.Min())) max_P = Pressure_y.Max();
+                else max_P = Abs(Pressure_y.Min());
+            }
+            else if (rBShear.Checked == true)
+            {
+                if (Shear.Max() > Abs(Shear.Min())) max_P = Shear.Max();
+                else max_P = Abs(Shear.Min());
             }
             else
             {
@@ -751,7 +885,13 @@ namespace ElasticModulus
         private void rBAngle_CheckedChanged(object sender, EventArgs e)
         {
             if (rBAngle.Checked == true && Angle != null && Angle.Count > 0 /*&& Angle.Max() > 0*/)
-                Display(map, Angle, Color_Define);
+                Display(map, Angle, Color_Define_Weird_Alt);
+        }
+
+        private void rBShear_CheckedChanged(object sender, EventArgs e)
+        {
+            if (rBShear.Checked == true && Shear != null && Shear.Count > 0 /*&& Angle.Max() > 0*/)
+                Display(map, Shear, Color_Define_Weird_Alt);
         }
     }
 }
