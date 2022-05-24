@@ -11,6 +11,7 @@ namespace ElasticModulus
     {
         int cell_in_row;
         int cell_in_col;
+        int cell_in_depth;
         int cell_num;
         double cell_size;
 
@@ -27,8 +28,8 @@ namespace ElasticModulus
         double[] vol_frac; // Объемные доли компонентов 
 
         int sq_in_rad;
-
-        public Map(int _sq_in_rad, double[] _vol_frac, int _cell_in_row, int _cell_in_col, double _cell_size, bool def = true)
+        bool quater = false;
+        public Map(int _sq_in_rad, double[] _vol_frac, int _cell_in_row, int _cell_in_col, int _cell_in_depth, double _cell_size, bool _quater = true, bool def = true)
             
         {        
             int comp_num = _vol_frac.Length;
@@ -42,63 +43,108 @@ namespace ElasticModulus
             }
             cell_in_row = _cell_in_row;
             cell_in_col = _cell_in_col;
+            cell_in_depth = _cell_in_depth;
             cell_size = _cell_size;
-            cell_num = cell_in_col * cell_in_row;
-
+            cell_num = cell_in_col * cell_in_row * cell_in_depth;
             sq_in_rad = _sq_in_rad;
+            quater = _quater;
 
-            if (def == true) { Round_Structure_Definition(FormMain.sluchai); /*Middle_Path(FormMain.sluchai);*/ } //!!!!!!!!!!!!!!!!
-
+            if (def == true) 
+            { 
+                if (quater == true) Round_Quater_Structure_Definition(FormMain.sluchai);
+                else Round_Structure_Definition(FormMain.sluchai);
+            /*Middle_Path(FormMain.sluchai);*/ 
             }
-        public Map(int _sq_in_rad, double[] _vol_frac, int _cell_in_row, int _cell_in_col, double _mind, double _maxd, double _mx, double _sigma, double _cell_size) :  this(_sq_in_rad, _vol_frac, _cell_in_row, _cell_in_col, _cell_size, false)
+
+        }
+        public Map(int _sq_in_rad, double[] _vol_frac, int _cell_in_row, int _cell_in_col, int _cell_in_depth, double _mind, double _maxd, double _mx, double _sigma, double _cell_size, bool _quater = true) :  this(_sq_in_rad, _vol_frac, _cell_in_row, _cell_in_col, _cell_in_depth, _cell_size, true,false)
         {
             porous = true;
             mind = _mind;
             maxd = _maxd;
             mx = _mx;
             sigma = _sigma;
-            Round_Structure_Definition(FormMain.sluchai); //!!!!!!!!!!!!!!!!
+            if (quater == true) Round_Quater_Structure_Definition(FormMain.sluchai);
+            else Round_Structure_Definition(FormMain.sluchai);
 
             //Middle_Path(FormMain.sluchai);
         }
 
+        void Round_Quater_Structure_Definition(Random sluchai)
+        {
+            double k;
+            double diam;
+            int a = 2;
+            int quater_cell_num = (sq_in_rad+1) * (sq_in_rad+1)*cell_in_depth;
+            for (int i = 0; i < quater_cell_num; i++) // Выделение клеток за окружностью
+            {
+                int x = 0; int y = 0; int z = 0;
+                Num_Decrypt(i, ref x, ref y, ref z);
+                if ( x * x + (y - sq_in_rad) * (y - sq_in_rad) > (sq_in_rad) * (sq_in_rad)) { Component[0].Add(i); }
+            }
+
+            if (vol_frac[0] > 0)
+            {
+                int pore_cell_num = (int)(vol_frac[0] * PI * (sq_in_rad + 1) * (sq_in_rad + 1) * cell_in_depth / 24); // добавлено PI * cell_in_depth / 24
+                while (pore_cell_num > PI * Pow(mind / cell_size, 3) / 6) // до этого была площадь = PI * Pow(mind / cell_size,2)
+                {
+                    do
+                    {
+                        k = sluchai.NextDouble();
+                        diam = mind + (maxd - mind) * k; // выбор случайного значения диаметра в интервале
+                        k = sluchai.NextDouble();
+                    }
+                    while (k < Gauss_Distribution(diam, mx, sigma));
+                    int k2 = sluchai.Next(0, quater_cell_num);
+                    if (Component[0].Contains(k2) == true ) continue; // не дает центру поры генерироваться в другой поре или вне круга
+                    pore_cell_num -= Circle(k2, diam);
+
+                }
+            }
+            for (int i = 0; i < quater_cell_num; i++)
+            {
+                if (Component[0].Contains(i) == true) continue; // можно ли упростить?
+
+                k = sluchai.NextDouble();
+
+                double vol;
+                vol = vol_frac[0] + vol_frac[1];
+
+                byte type = (byte)(a - 1);
+                for (byte j = (byte)a; j < vol_frac.Length; j++)
+                {
+                    if (k >= vol) { vol += vol_frac[j]; type = j; }
+                    else break;
+                }
+                // x - случайная величина
+                // Пусть имеется 2 вещества. V0 - объемная доля пор, V1 и V2 - веществ
+                // При этом V0 + V2 + V3 = 1
+                // В зависимости от того, какое значение примет х, выбирается состав клетки
+                // 0      <= x <= V0 - пора
+                // V0      < x <= V0 + V1 - первое вещество 
+                // V0 + V1 < x <= V0 + V1 + V2 -второе вещество
+
+                Component[type].Add(i);
+
+            }
+        }
         void Round_Structure_Definition(Random sluchai)
         {
             double k;
             double diam;
             int a = 2;
-            
+
             for (int i = 0; i < cell_num; i++) // Выделение клеток за окружностью
             {
-                int x = 0; int y = 0;
-                Num_Decrypt(i, ref x, ref y);
+                int x = 0; int y = 0; int z = 0;
+                Num_Decrypt(i, ref x, ref y, ref z);
                 if ((x - sq_in_rad) * (x - sq_in_rad) + (y - sq_in_rad) * (y - sq_in_rad) > sq_in_rad * sq_in_rad) { Component[0].Add(i); }
             }
 
-            //for (int i = 0; i < cell_num; i++)
-            //{
-            //    int x = 0; int y = 0;
-            //    Num_Decrypt(i, ref x, ref y);
-            //    if ((x - sq_in_rad) * (x - sq_in_rad) + (y - sq_in_rad) * (y - sq_in_rad) > sq_in_rad * sq_in_rad) continue;
-
-
-            //        k = sluchai.NextDouble();
-            //        double vol;
-            //        vol = vol_frac[0] + vol_frac[1];
-
-            //        byte type = (byte)(a - 1);
-            //        for (byte j = (byte)a; j < vol_frac.Length; j++)
-            //        {
-            //            if (k >= vol) { vol += vol_frac[j]; type = j; }
-            //            else break;
-            //        }
-            //        Component[type].Add(i);
-
-            //}
-            if (vol_frac[0]>0)
+            if (vol_frac[0] > 0)
             {
-                int pore_cell_num = (int)(vol_frac[0] * sq_in_rad * sq_in_rad);
-                while (pore_cell_num > PI * Pow(mind / cell_size, 2)) // пока что используем площадь = PI * Pow(mind / cell_size,2)
+                int pore_cell_num = (int)(vol_frac[0] * PI * sq_in_rad * sq_in_rad * cell_in_depth / 6); // добавлено PI *  cell_in_depth / 6
+                while (pore_cell_num > PI * Pow(mind / cell_size, 3) / 6) // до этого была площадь = PI * Pow(mind / cell_size,2)
                 {
                     do
                     {
@@ -108,7 +154,7 @@ namespace ElasticModulus
                     }
                     while (k < Gauss_Distribution(diam, mx, sigma));
                     int k2 = sluchai.Next(0, cell_num);
-                    if (Component[0].Contains(k2) == true ) continue; // не дает центру поры генерироваться в другой поре или вне круга
+                    if (Component[0].Contains(k2) == true) continue; // не дает центру поры генерироваться в другой поре или вне круга
                     pore_cell_num -= Circle(k2, diam);
 
                 }
@@ -139,10 +185,6 @@ namespace ElasticModulus
                 Component[type].Add(i);
 
             }
-
-
-
-
         }
 
         void Structure_Definition(Random sluchai)
@@ -209,39 +251,78 @@ namespace ElasticModulus
         }
         int Circle(int num, double diam) // упростить, исп симметрию
         {
-            int x = 0; int y = 0; int filled_cells = 0; byte a = 0;
+            int x = 0; int y = 0; int z = 0; int filled_cells = 0; 
+            
             int rad_in_cells = (int)(0.5 * diam / cell_size);
             while (Sqrt(2 * rad_in_cells * rad_in_cells) <= 0.5 * diam / cell_size) 
                 rad_in_cells++;
+
+            byte a = 0;
             if (rad_in_cells < 8 && rad_in_cells % 2 == 1) a = 1;
-            Num_Decrypt(num, ref x,ref y);
-            for (int i = -rad_in_cells-a; i <= rad_in_cells; i++)
-                for (int j = -rad_in_cells-a; j <= rad_in_cells; j++)
-                {
-                    if (x + i < 0 || y + j < 0 || x + i >= cell_in_row || y + j >= cell_in_col) continue;
-                    
-                    if (Sqrt(i * i + j * j) <= diam*0.5 / cell_size) 
-                    {
-                        if (Component[0].Contains(Num_Crypt(x + i, y + j)) == true) continue;
-                        Component[0].Add(Num_Crypt(x + i, y + j));
-                        filled_cells++;                    
+           
+            Num_Decrypt(num, ref x,ref y, ref z);
+            for (int k = 0; k <= rad_in_cells; k++) 
+                for (int i = -rad_in_cells-a+k; i <= rad_in_cells-k; i++)
+                    for (int j = -rad_in_cells-a+k; j <= rad_in_cells-k; j++)
+                    { 
+                        if (x + i < 0 || y + j < 0 || x + i >= cell_in_row || y + j >= cell_in_col) continue;
+
+                        if (Sqrt(i * i + j * j) <= rad_in_cells) 
+                        {
+                            if (k != 0)
+                            {
+                                if (z + k < cell_in_depth && Component[0].Contains(Num_Crypt(x + i, y + j, z + k)) == false)
+                                {
+                                    Component[0].Add(Num_Crypt(x + i, y + j, z + k));
+                                    filled_cells++;
+                                }
+                                if (z - k >= 0 && Component[0].Contains(Num_Crypt(x + i, y + j, z - k)) == false)
+                                {
+                                    Component[0].Add(Num_Crypt(x + i, y + j, z - k));
+                                    filled_cells++;
+                                }
+                            }
+                            else
+                            {
+                                if (Component[0].Contains(Num_Crypt(x + i, y + j, z)) == false)
+                                {
+                                    Component[0].Add(Num_Crypt(x + i, y + j, z));
+                                    filled_cells++;
+                                }
+                            }
+                            
+                        }
                     }
-                }
+           
             return filled_cells;        
         }
-        public void Num_Decrypt (int num, ref int x, ref int y) // переводит номер клетки в координаты (пока в 2D варианте)
+
+
+        public void Num_Decrypt(int num, ref int x, ref int y, ref int z) // переводит номер клетки в координаты (пока в 2D варианте)
         {
-            y = num / cell_in_row;
-            x = (num - ( num / cell_in_row)*cell_in_row);
-            // Запись (num/cell_in_row)*cell_in_row имеет смысл, тк при делении целых чисел отбрасывается дробная часть. Например:
-            // (13/2)*2 = (6)*2 = 12
+            if (quater == false)
+            {
+                z = num / (cell_in_col * cell_in_row);
+                num = num - z * cell_in_row * cell_in_col;
+                y = num / cell_in_row;
+                x = (num - (num / cell_in_row) * cell_in_row);
+                // Запись (num/cell_in_row)*cell_in_row имеет смысл, тк при делении целых чисел отбрасывается дробная часть. Например:
+                // (13/2)*2 = (6)*2 = 12
+            }
+            else
+            {
+                z = num / ((sq_in_rad+1) * (sq_in_rad + 1));
+                num = num - z * (sq_in_rad + 1) * (sq_in_rad + 1);
+                y = num / (sq_in_rad + 1);
+                x = (num - (num / (sq_in_rad + 1)) * (sq_in_rad + 1));
+            }
         }
-        public int Num_Crypt(int x, int y)  // переводит координаты в номер клетки (пока в 2D варианте)
+        public int Num_Crypt(int x, int y, int z)  // переводит координаты в номер клетки (пока в 2D варианте)
         {
-            if (y == 0) return x;
-            if (x == 0) return y * cell_in_row;
-            return y * cell_in_row + x;
+            if( quater == false) return (z*cell_in_col + y) * cell_in_row + x;
+            else return (z * (sq_in_rad + 1) + y) * (sq_in_rad + 1) + x;
         }
+        
         public void Short_Path() //2D 
         {
             if (porous == false) return;
@@ -311,8 +392,9 @@ namespace ElasticModulus
 
                                 // Выбор одного из двух путей
                                 int x = 0; int y1 = 0 ; int y2 = 0;
-                                if(path_l.Count!=0) Num_Decrypt(path_l[path_l.Count - 1], ref x, ref y1);
-                                if (path_r.Count != 0) Num_Decrypt(path_r[path_r.Count - 1], ref x, ref y2);
+                                int z1 = 0; int z2 = 0; // здесь введение z номинальное, работоспособность кода не проверялась
+                                if(path_l.Count!=0) Num_Decrypt(path_l[path_l.Count - 1], ref x, ref y1, ref z1);
+                                if (path_r.Count != 0) Num_Decrypt(path_r[path_r.Count - 1], ref x, ref y2, ref z2);
                                 if (y2 == y1)
                                 { if (path_l.Count > path_r.Count) rout.AddRange(path_r); else rout.AddRange(path_l); }
                                 else {if (y2 > y1) rout.AddRange(path_r); else rout.AddRange(path_l); }
@@ -404,7 +486,8 @@ namespace ElasticModulus
                 int[] xy = new int[2] { 0, 0 };
                 
                 int [] xys = new int[2];
-                Num_Decrypt(index, ref xy[0], ref xy[1]);
+                int z1 = 0; // здесь введение z номинальное, работоспособность кода не проверялась
+                Num_Decrypt(index, ref xy[0], ref xy[1], ref z1);
                 xys[0] = xy[0]; xys[1] = xy[1];
                 byte a = 0;
                 sbyte sign = -1; 
@@ -415,7 +498,7 @@ namespace ElasticModulus
                     xy[a] += sign;
                     
 
-                    if (xy[a] < 0 || xy[1] >= cell_in_col || xy[0] >= cell_in_row || Component[0].Contains(Num_Crypt(xy[0], xy[1])) == true)
+                    if (xy[a] < 0 || xy[1] >= cell_in_col || xy[0] >= cell_in_row || Component[0].Contains(Num_Crypt(xy[0], xy[1], z1)) == true)
                         clockwise = false;
                     else clockwise = true;
                     //if ((xy[a] < 0 || xy[1] >= cell_in_col || xy[0] >= cell_in_row) == false) path.Add(Num_Crypt(xy[0], xy[1])) ;
@@ -479,9 +562,9 @@ namespace ElasticModulus
                     k++;
                 }
                 int x = 0; int y1 = 0; int y2 = 0;
-
-                if (left_wall > 0) {  path_l.Add(left_wall); Go_Down(ref path_l); Num_Decrypt(path_l[path_l.Count - 1], ref x, ref y1); }
-                if (right_wall > 0) { path_r.Add(right_wall); Go_Down(ref path_r); Num_Decrypt(path_r[path_r.Count - 1], ref x, ref y2); }
+                int z1 = 0; // здесь введение z номинальное, работоспособность кода не проверялась
+                if (left_wall > 0) {  path_l.Add(left_wall); Go_Down(ref path_l); Num_Decrypt(path_l[path_l.Count - 1], ref x, ref y1, ref z1); }
+                if (right_wall > 0) { path_r.Add(right_wall); Go_Down(ref path_r); Num_Decrypt(path_r[path_r.Count - 1], ref x, ref y2, ref z1); }
 
 
                 // Выбор одного из двух путей
@@ -501,12 +584,13 @@ namespace ElasticModulus
                     //MARK:
                     int index_2 = path.Last();
                     int x_2 = 0; int y_2 = 0;
-                    Num_Decrypt(index_2, ref x_2, ref y_2);
+                    int z_2 = 0; // здесь введение z номинальное, работоспособность кода не проверялась
+                    Num_Decrypt(index_2, ref x_2, ref y_2, ref z_2);
                     int x_1 = x_2; int y_1 = y_2; //
-                    if (path.Count > 1) { /*index_1 = path[path.Count - 2];*/ Num_Decrypt(index_1, ref x_1, ref y_1); }
+                    if (path.Count > 1) { /*index_1 = path[path.Count - 2];*/ Num_Decrypt(index_1, ref x_1, ref y_1, ref z_2); }
                     // 
                     sbyte dx = 1; sbyte dy = 1;
-                    if (Component[0].Contains(Num_Crypt(x_2, y_2 + dy)) == true /*|| sluchai.NextDouble() > anti_repeat*/)
+                    if (Component[0].Contains(Num_Crypt(x_2, y_2 + dy,z_2)) == true /*|| sluchai.NextDouble() > anti_repeat*/)
                     {
                         if (x_2 - x_1 == 0 || Abs((y_2 - y_1) / (x_2 - x_1)) >= Tan(3 * PI / 8)) dx = 0; //
                         else if (path.Count > 1 && Abs((y_2 - y_1) / (x_2 - x_1)) <= Tan(PI / 8)) dy = 0;//
@@ -517,7 +601,7 @@ namespace ElasticModulus
                     else { dx = 0;dy = 1; }
                     bool end = false;
                     bool start = true;
-                    while (Component[0].Contains(Num_Crypt(x_2 + dx, y_2 + dy)) == true)
+                    while (Component[0].Contains(Num_Crypt(x_2 + dx, y_2 + dy, z_2)) == true)
                     {
 
                         if (start == true)
@@ -527,7 +611,7 @@ namespace ElasticModulus
                                 for (sbyte i = -1; i > 2; i++)
                                 {
                                     if ((dx == i && dy == j) || (i == 0 && j == 0) || x_2 + i < 0 || y_2 + j < 0 || x_2 + i >= cell_in_row || y_2 + j >= cell_in_col) continue;
-                                    if (Component[0].Contains(Num_Crypt(x_2 + i, y_2 + j)) == false) { dx = i; dy = j; end = true; break; }
+                                    if (Component[0].Contains(Num_Crypt(x_2 + i, y_2 + j, z_2)) == false) { dx = i; dy = j; end = true; break; }
 
                                 }
                             }
@@ -540,7 +624,7 @@ namespace ElasticModulus
                             if (path.Count > 1 && start == true)
                             {
                                 double cut = 0.03;
-                                Num_Decrypt(path[path.Count - 1 - (int)(path.Count * cut)], ref x_2, ref y_2);
+                                Num_Decrypt(path[path.Count - 1 - (int)(path.Count * cut)], ref x_2, ref y_2, ref z_2);
                                 path.RemoveRange(path.Count - 1 - (int)(path.Count * cut), (int)(path.Count * cut)+1);
                                 index_1 = path[path.Count - 2];
                                 //goto MARK;
@@ -573,7 +657,8 @@ namespace ElasticModulus
                     }
 
                         Wall_Search_xy(out int x_3, out int y_3, dx, dy, x_2, y_2);
-                    if (Component[0].Contains(Num_Crypt(x_3, y_3)) == false)
+                    int z_3 = 0; // здесь введение z номинальное, работоспособность кода не проверялась
+                    if (Component[0].Contains(Num_Crypt(x_3, y_3, z_3)) == false)
                     {
                         index_1 = path.Last();
                         int dx_23 = 0; int dy_23 = 0;
@@ -587,9 +672,9 @@ namespace ElasticModulus
                             {
                                 if (y_3 - y_2 > 0) dy_23++; else dy_23--;
                             }
-                            path.Add(Num_Crypt(x_2 + dx_23, y_2 + dy_23));
+                            path.Add(Num_Crypt(x_2 + dx_23, y_2 + dy_23, z_3));
                         }
-                        path.Add(Num_Crypt(x_3, y_3));
+                        path.Add(Num_Crypt(x_3, y_3, z_3));
                         
                     }
                     { 
@@ -641,19 +726,20 @@ namespace ElasticModulus
 
                     int x_l = x_2 + dx; int y_l = y_2 + dy; bool right = false;
                     int x_r = x_2 + dx; int y_r = y_2 + dy; bool left = false;
-                    
+                    int z_2 = 0; // здесь введение z номинальное, работоспособность кода не проверялась
+
                     while (right == false || left == false)
                     {
                         // diag. ch
                         if (left == false ) 
                         {
-                            if (x_l - dx_p < 0 || x_l - dx_p >= cell_in_row || y_l - dy_p < 0 || y_l - dy_p >= cell_in_col || Component[0].Contains(Num_Crypt(x_l - dx_p, y_l - dy_p)) == true) left = true;
+                            if (x_l - dx_p < 0 || x_l - dx_p >= cell_in_row || y_l - dy_p < 0 || y_l - dy_p >= cell_in_col || Component[0].Contains(Num_Crypt(x_l - dx_p, y_l - dy_p, z_2)) == true) left = true;
                             else { x_l -= dx_p; y_l -= dy_p; }
                         }
 
                         if (right == false)
                         {
-                            if (x_r + dx_p < 0 || x_r + dx_p >= cell_in_row || y_r + dy_p < 0 || y_r + dy_p >= cell_in_col || Component[0].Contains(Num_Crypt(x_r + dx_p, y_r + dy_p)) == true) right = true;
+                            if (x_r + dx_p < 0 || x_r + dx_p >= cell_in_row || y_r + dy_p < 0 || y_r + dy_p >= cell_in_col || Component[0].Contains(Num_Crypt(x_r + dx_p, y_r + dy_p, z_2)) == true) right = true;
                             else { x_r += dx_p; y_r += dy_p; }
                         }
 
@@ -693,8 +779,8 @@ namespace ElasticModulus
                         }
                         sch++;
                     }
-                    while (sch < 250 && Component[0].Contains(Num_Crypt(next_x, next_y)) == true);
-                   
+                    while (sch < 250 && Component[0].Contains(Num_Crypt(next_x, next_y, z_2)) == true);
+                    // здесь введение z номинальное, работоспособность кода не проверялась
 
                 }
                 double Prob(double x, double min, double max)
