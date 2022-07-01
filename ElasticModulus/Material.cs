@@ -12,13 +12,15 @@ namespace ElasticModulus
         public double elastic_m; // модуль упругости
         public double compr_strength; // прочность на сжатие
         public double yeild_str;  // предел текучести/предел упругости
-        public Material(double _p_ratio, double _elastic_m, double _compr_strength, double _yeild_str)
+        public double tensile_str; // предел прочности на разрыв
+        public Material(double _p_ratio, double _elastic_m, double _compr_strength, double _yeild_str, double _tensile_str)
         {
 
             p_ratio = _p_ratio;
             elastic_m = _elastic_m;
             compr_strength = _compr_strength;
             yeild_str = _yeild_str;
+            tensile_str = _tensile_str;
         }
 
     }

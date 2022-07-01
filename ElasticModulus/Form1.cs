@@ -22,9 +22,9 @@ namespace ElasticModulus
         int max_num;
         int display_z = 8;
         int iter_num = 200;
-        byte pressured_cells = 1;
-        byte ttt = 40;
-        
+        int pressured_cells = 21;
+        byte ttt = 40; // число итераций взаимодействия
+        string text;
 
         double force = 0.78; //Н
         double diameter = 0.01032; //м
@@ -38,6 +38,9 @@ namespace ElasticModulus
         List<double[]> Neigh2;
         List<bool[]> Neigh3;
 
+        List<bool> Fractured;
+        List<bool> Griffith;
+
         byte cell_size_pix = 20;
         double cell_size;
         List<double>[] cell_l_d = new List<double>[2];
@@ -49,6 +52,7 @@ namespace ElasticModulus
         List<double> Shear;
         List<double> Angle;
         List<double> Von_Mises;
+        
         
         List<double>[] Stress;
         byte stress_in = 1;
@@ -80,40 +84,64 @@ namespace ElasticModulus
             Materials = new Material[(int)nUD_MaterialsNum.Value];
 
             sq_in_rad = (int)nUD_SquareNum.Value;
+            pressured_cells = sq_in_rad + 1;
             Count_cell_size();
             cell_in_col = sq_in_rad * 2 + 1;
             cell_in_row = cell_in_col;
             Update_Force_Panel();
             
         }
-        private void Fracture(int sch)
+        private async Task Fracture(int sch)
         {
-            for (int k = 1; k < map.Component.Length; k++)
+
+              for (int k = 1; k < map.Component.Length; k++)
                 for (int i = 0; i < map.Component[k].Count; i++)
                 {
                     int num = map.Component[k][i];
-                    if (Mises_Cr(num, k-1) == true)
+                    if (Griffith[num] == true) continue;
+                    else
                     {
-                        int x = 0; int y = 0; int z = 0;
-                        map.Num_Decrypt(num, ref x, ref y, ref z);
-                        tB_Fracture.Text += "Sigma_X = " + Round(Pressure_x[num],0) + $" №{sch-1}; F = {app_press * cell_in_depth * cell_size * cell_size * sch}; " +
-                            $"2F/(Pi*D*t) = {Round(2*app_press * cell_in_depth * cell_size * cell_size * sch/(PI*diameter*thickness),0)}; ({x}; {y}; {z})" + Environment.NewLine;
-                        Pressure_x[num] = 0;
-                        Pressure_y[num] = 0;
-                        Pressure_z[num] = 0;
-                        map.Component[k].Remove(num);
-                        map.Component[0].Add(num);
-                        
+                        tasks.Add(Count_Griffith(num, k));
                     }
                    
                 }
-            
+            for (int i = 0; i < tasks.Count;i++)
+                await tasks[i];
+            await Task.Delay(2);
+            for (int i = 0; i < tasks.Count; i++)
+            { tasks[i]?.Dispose(); }
+            tasks.Clear();
+
+            async Task Count_Griffith(int num,int k)
+            {
+                Task.Run(() => Count_Griffith_Jr(num, k));
+            }
+            void Count_Griffith_Jr(int num, int k)
+            {
+                Griffith[num] = Griffith_Cr(num, k - 1);
+                if (Griffith[num] == true)
+                {
+                    int x = 0; int y = 0; int z = 0;
+                    map.Num_Decrypt(num, ref x, ref y, ref z);
+                    text += "Sigma_X = " + Round(Pressure_x[num], 0) + $" №{sch - 1}; F = {app_press * cell_in_depth * cell_size * cell_size * sch}; " +
+                        $"2F/(Pi*D*t) = {Round(2 * app_press * cell_in_depth * cell_size * cell_size * sch / (PI * diameter * thickness), 0)}; ({x}; {y}; {z})" + Environment.NewLine;
+
+                    Fractured[num] = true; ;
+                    //Pressure_x[num] = 0;
+                    //Pressure_y[num] = 0;
+                    //Pressure_z[num] = 0;
+                    //map.Component[k].Remove(num);
+                    //map.Component[0].Add(num);
+                }
+            }
+
+
         }
 
         private void Assign_Materials()
         {
             Materials = new Material[(int)nUD_MaterialsNum.Value];
-            Materials[0] = new Material((double)nUD_Poisson.Value, (double)nUD_Young.Value * Pow(10, 6), 20 * Pow(10, 12), (double)nUD_Mises.Value*Pow(10,6));
+            Materials[0] = new Material((double)nUD_Poisson.Value, (double)nUD_Young.Value * Pow(10, 9), 20 * Pow(10, 15), 38.06 * Pow(10, 6), (double)nUD_Mises.Value*Pow(10,6));
             //for (int i = 1; i < Materials.Length; i++) ;
             //    Materials[i] = new Material();
         }
@@ -137,10 +165,9 @@ namespace ElasticModulus
             //double maxd = 30;
             //double mx = 8;
             //double sigma = 0.15;
-            //Assign_Materials();
+            Assign_Materials();
             //Materials[0] = new Material(0.24, 50*Pow(10, 9), 20*Pow(10,12), 16 * Pow(10, 12));
-            Materials[0] = new Material(0.24, 34 * Pow(10, 8), 38 * Pow(10, 12), 0.02*34 * Pow(10, 8));
-            // Materials[1] = new Material(0.5, 1 * Pow(10, 9), 20 * Pow(10, 8));
+           // Materials[0] = new Material(0.24, 34 * Pow(10, 9), 38 * Pow(10, 12), 0.02 * 34 * Pow(10, 9), 38.06 * Pow(10, 6));
 
             Pressure = new List<double>();
             Pressure_x = new List<double>();
@@ -151,6 +178,8 @@ namespace ElasticModulus
             Von_Mises = new List<double>();
             Neigh = new List<double>();
             Neigh2 = new List<double[]>();
+            Fractured = new List<bool>();
+            Griffith = new List<bool>();
 
             //for (int i = 0; i < 3; i++)
             //    Neigh3.Add(new bool[]{false,false,false,false,false,false}); ;
@@ -165,6 +194,8 @@ namespace ElasticModulus
                 Von_Mises.Add(0);
                 Neigh.Add(0);
                 Neigh2.Add(new double[3]{0,0,0 });
+                Griffith.Add(false);
+                Fractured.Add(false);
                 //Neigh[1].Add(0);
                 //Neigh[2].Add(0);
 
@@ -189,7 +220,16 @@ namespace ElasticModulus
             progressBar1.Maximum = iter_num;
             bool stop;
             force_sum += app_press * cell_in_depth * cell_size * cell_size* iter_num;
-        PP: for (int sch = 0; sch <iter_num; sch++)
+            pressured_cells = sq_in_rad + 1;
+            int filled_cells = 0;
+            for (int k = 1; k < map.Component.Length; k++)
+                for (int i = 0; i < map.Component[k].Count; i++)
+                {
+                    filled_cells++;
+                }
+            tB_Fracture.Text += filled_cells + Environment.NewLine;
+            tB_Fracture.Text += DateTime.Now + Environment.NewLine;
+            PP: for (int sch = 0; sch <iter_num; sch++)
              {
 
                 //            Count_dl(out double rec_da, out double rec_db, Materials[k-1].elastic_m, Materials[k-1].p_ratio, Pressure[map.Component[k][i]], cell_size * Pow(10, -9));
@@ -201,21 +241,25 @@ namespace ElasticModulus
                 Define_Empirical(sch);
                 Count_Neigh();
                 if (checkBox1.Checked==true)Apply_pressure();
-
+                await Fracture(sch + 1);
+                Count_Neigh();
                 await Interact_Sym_Async(true, sch == 0);
                 for (int tt = 0; tt < ttt-1; tt++) // tt должно быть четным
                 {
                     await Interact_Sym_Async();
                 }
-                Fracture(sch+1);
+                await Fracture(sch+1);
+                 tB_Fracture.Text += text;
+                text = "";
+                if (stress_in == 0 || stress_in == 6)
+                    for (int u = 0; u < max_num; u++)
+                        if ((map.Component[0].Contains(u) || Fractured[u])== false) Count_VM_and_Hydro(u);
                 Display();
-                //if (stress_in == 0 || stress_in == 6)
-                //    for (int u = 0; u < max_num; u++)
-                //        if (map.Component[0].Contains(u) == false) Count_VM_and_Hydro(u);
-
                 progressBar1.Value = sch;
                 label_progress_bar.Text = progressBar1.Value + " из " + iter_num;
+                
             }
+            tB_Fracture.Text += DateTime.Now + Environment.NewLine;
             progressBar1.Value = iter_num;
             label_progress_bar.Text = progressBar1.Value + " из " + iter_num;
             Display();
@@ -239,7 +283,7 @@ namespace ElasticModulus
         async Task Display_Asym(double cut = 1)
         {
             double max_P = Max_P();
-            label_Max_P.Text = "Max P = " + max_P;
+            label_Max_P.Text = "Max F = " + max_P;
             label_Sigma_at_break.Text = "2*F/(Pi*D*t) = " + Round(2 * force_sum / (PI * thickness * diameter), 2);
             label_Sigma_at_break.Refresh();
             Bitmap bmp;
@@ -267,7 +311,7 @@ namespace ElasticModulus
 
                         rect = new Rectangle(rec_x, rec_y, rec_a - 5, rec_b - 5);
                         Color rect_color;
-                        if (stress_in != 4 && stress_in != 5 && (Mises_Cr(map.Component[k][i], k-1) ||Abs(Stress[stress_in][map.Component[k][i]]) >= Materials[k - 1].compr_strength)) // Abs(Pressure_x[map.Component[k][i]] + Pressure_y[map.Component[k][i]])
+                        if (stress_in != 4 && stress_in != 5 && (Mises_Cr(map.Component[k][i], k-1) ||Abs(Stress[stress_in][map.Component[k][i]]) >= Materials[k - 1].compr_strength || Fractured[map.Component[k][i]])) // Abs(Pressure_x[map.Component[k][i]] + Pressure_y[map.Component[k][i]])
                         { 
                             rect_color = Color.Gray;
                         }
@@ -299,7 +343,7 @@ namespace ElasticModulus
                         if (z != display_z) continue;
 
                         Color rect_color;
-                        if (stress_in != 4 && stress_in != 5 && Materials[k-1]!= null && (/*Mises_Cr(map.Component[k][i], k - 1) ||*/ Abs(Stress[stress_in][map.Component[k][i]]) >= Materials[k - 1].compr_strength)) // Abs(Pressure_x[map.Component[k][i]] + Pressure_y[map.Component[k][i]])
+                        if (stress_in != 4 && stress_in != 5 && Materials[k-1]!= null && (/*Mises_Cr(map.Component[k][i], k - 1) ||*/ Abs(Stress[stress_in][map.Component[k][i]]) >= Materials[k - 1].compr_strength || Fractured[map.Component[k][i]])) // Abs(Pressure_x[map.Component[k][i]] + Pressure_y[map.Component[k][i]])
                         {
                             rect_color = Color.Gray;
                         }
@@ -365,7 +409,7 @@ namespace ElasticModulus
                         if ((i >= 0 && y + i < maxy) || (i < 0 && y + i >= 0))
                         {
                             num = map.Num_Crypt(x, y + i, z);
-                            if (map.Component[0].Contains(num)) continue;
+                            if (map.Component[0].Contains(num) ) continue;
                             if (Abs(Pressure[num]) < Materials[0].compr_strength) //
                                 Pressure[num] += maxP * ((maxx - 2 * x - 1) / (maxx - 1) + (maxy - 2 * (i + y) - 1) / (maxy - 1)) / 2;
                         }
@@ -432,7 +476,7 @@ namespace ElasticModulus
             
         }
 
-        void Apply_pressure(/*Map map*/) 
+        void Apply_pressure() 
         {
             
             //(byte)( cell_in_col*0.5); // Клетки, на которые действует пластина (отсчет ведется с края таблетки)
@@ -457,32 +501,29 @@ namespace ElasticModulus
             //    }
 
             //int xmin = cell_in_row; int xmax = 0;
-            //int _x = sq_in_rad;
+
             for (int y = 0; y < pressured_cells; y++)
             {
-                //if (y > 0) _x = cell_in_row / 4;
                 for (int z = 0; z < cell_in_depth; z++)
-                    for (int x = 0/*_x*/; x < cell_in_row * 3 / 4; x++)
+                    for (int x = 0; x < 1; x++)
                     {
-                        //if (y == 1 && x == sq_in_rad) continue;
                         if (map.Component[0].Contains(map.Num_Crypt(x, y, z)) == false)
                         {
                             int num = map.Num_Crypt(x, y, z);
-
-                            Pressure_y[num] -= app_press /** Cos(Angle[num])*/;
-                            Pressure_x[num] += app_press * Materials[0].p_ratio; //+++++++++++++++++++++++++++++++++++++++++++++++++++++ Костыль
-                            Pressure_z[num] += app_press * Materials[0].p_ratio; //+++++++++++++++++++++++++++++++++++++++++++++++++++++ Костыль
-                            // Shear[num] += app_press /** Sin(Angle[num])*/;
+                            //double delitel = 2.0 / (y + 1);
+                            Pressure_y[num] -= app_press / pressured_cells; /**delitel;*/
+                            Pressure_x[num] += app_press / pressured_cells; /** Materials[0].p_ratio;*/ //+++++++++++++++++++++++++++++++++++++++++++++++++++++ Костыль
+                            Pressure_z[num] += app_press / pressured_cells; /** Materials[0].p_ratio;*/ //+++++++++++++++++++++++++++++++++++++++++++++++++++++ Костыль
                             //if (x > xmax) xmax = x;
                             //if (xmin > x) xmin = x;
                         }
                         if (map.Component[0].Contains(map.Num_Crypt(x, cell_in_col - y - 1, z)) == false && quater == false)
                         {
                             int num = map.Num_Crypt(x, cell_in_col - y - 1, z);
-                            Pressure_y[num] -= app_press /** Cos(Angle[num])*/;
-                            Pressure_x[num] += app_press * Materials[0].p_ratio; //+++++++++++++++++++++++++++++++++++++++++++++++++++++ Костыль
-                            Pressure_z[num] += app_press * Materials[0].p_ratio; //+++++++++++++++++++++++++++++++++++++++++++++++++++++ Костыль
-                           //  Shear[num] += app_press/* * Sin(Angle[num])*/;
+                            Pressure_y[num] -= app_press / pressured_cells;
+                            Pressure_x[num] += app_press / pressured_cells * Materials[0].p_ratio; //+++++++++++++++++++++++++++++++++++++++++++++++++++++ Костыль
+                            Pressure_z[num] += app_press / pressured_cells * Materials[0].p_ratio; //+++++++++++++++++++++++++++++++++++++++++++++++++++++ Костыль
+                           
                             //if (x > xmax) xmax = x;
                             //if (xmin > x) xmin = x;
                         }
@@ -528,20 +569,89 @@ namespace ElasticModulus
                     //if (z - 1 < 0 || (z - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x, y, z - 1)))) Neigh2[num][2] -= 1 + 2 * Materials[k - 1].p_ratio; /*neigh--;*/ //neigh -= (1 - 2 * Materials[k - 1].p_ratio);
                     //if (z + 1 >= cell_in_depth || (z + 1 < cell_in_depth && map.Component[0].Contains(map.Num_Crypt(x, y, z + 1)))) Neigh2[num][2] -= 1 + 2 * Materials[k - 1].p_ratio;/*neigh--;*///neigh -= (1 - 2 * Materials[k - 1].p_ratio);
 
-                    //if (x + 1 < sq_in_rad + 1 && map.Component[0].Contains(map.Num_Crypt(x + 1, y, z))) Neigh2[num][0] = false;
-                    //if (y - 1 >= pressured_cells && map.Component[0].Contains(map.Num_Crypt(x, y - 1, z))) Neigh2[num][1] = false;
-                    //if (z - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x, y, z - 1))) Neigh2[num][2] = false;
-                    //if (z + 1 < cell_in_depth && map.Component[0].Contains(map.Num_Crypt(x, y, z + 1))) Neigh2[num][3] = false;
+                    //if ((x - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x - 1, y, z))) || (x + 1 < sq_in_rad + 1 && map.Component[0].Contains(map.Num_Crypt(x + 1, y, z))) || x + 1 >= sq_in_rad + 1)
+                    //    Neigh2[num][0] *= 0.50;
+                    //if ((y - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x, y - 1, z))) || (y + 1 < sq_in_rad + 1 && map.Component[0].Contains(map.Num_Crypt(x, y + 1, z))) || y - 1 < 0)
+                    //    Neigh2[num][1] *= 0.50;
+                    //if ((z - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x, y, z - 1))) || (z + 1 < cell_in_depth && map.Component[0].Contains(map.Num_Crypt(x, y, z + 1))) || z - 1 < 0 || z + 1 >= cell_in_depth)
+                    //    Neigh2[num][2] *= 0.50;
 
-                    if ((x - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x - 1, y, z))) || (x + 1 < sq_in_rad + 1 && map.Component[0].Contains(map.Num_Crypt(x + 1, y, z))) || x + 1 >= sq_in_rad+1 ) 
-                        Neigh2[num][0] *= 0.50;
-                    if ((y - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x, y - 1, z))) || (y + 1 < sq_in_rad + 1 && map.Component[0].Contains(map.Num_Crypt(x, y + 1, z))) || y - 1 < 0)
-                        Neigh2[num][1] *= 0.50;
-                    if ((z - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x, y, z - 1))) || (z + 1 < cell_in_depth && map.Component[0].Contains(map.Num_Crypt(x, y, z + 1))) || z - 1 <0 || z + 1 >= cell_in_depth) 
-                        Neigh2[num][2] *= 0.50;
+                    //if ((x - 1 >= 0 && Fractured.Contains(map.Num_Crypt(x - 1, y, z))) || (x + 1 < sq_in_rad + 1 && Fractured.Contains(map.Num_Crypt(x + 1, y, z))))
+                    //{ Neigh2[num][1] -= 1 + 2 * Materials[k - 1].p_ratio; Neigh2[num][2] -= 1 + 2 * Materials[k - 1].p_ratio; }
+                    //if ((y - 1 >= 0 && Fractured.Contains(map.Num_Crypt(x, y - 1, z))) || (y + 1 < sq_in_rad + 1 && Fractured.Contains(map.Num_Crypt(x, y + 1, z))))
+                    //{ Neigh2[num][0] -= 1 + 2 * Materials[k - 1].p_ratio; Neigh2[num][2] -= 1 + 2 * Materials[k - 1].p_ratio; }
+                    //if ((z - 1 >= 0 && Fractured.Contains(map.Num_Crypt(x, y, z - 1))) || (z + 1 < cell_in_depth && Fractured.Contains(map.Num_Crypt(x, y, z + 1))))
+                    //{ Neigh2[num][0] -= 1 + 2 * Materials[k - 1].p_ratio; Neigh2[num][1] -= 1 + 2 * Materials[k - 1].p_ratio; }
 
 
-                    Neigh[num] = neigh;
+                    if (x + 1 >= sq_in_rad + 1 || (x + 1 < sq_in_rad + 1 && map.Component[0].Contains(map.Num_Crypt(x + 1, y, z))) || (x - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x - 1, y, z))))
+                        Neigh2[num][0] = Neigh2[num][0] - ((1 + 2 * Materials[k - 1].p_ratio) * (sq_in_rad - x) / sq_in_rad)/*+ ((1 + 2 * Materials[k - 1].p_ratio) * (sq_in_rad - y) / sq_in_rad)*/;
+                    if (/*y - 1 < 0 ||*/ (y + 1 < sq_in_rad + 1 && map.Component[0].Contains(map.Num_Crypt(x, y + 1, z))) || (y - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x, y - 1, z)))) 
+                        Neigh2[num][1] = Neigh2[num][1] - ((1 + 2 * Materials[k - 1].p_ratio) * (/*sq_in_rad -*/ y) / sq_in_rad)/*+ (1 + 2 * Materials[k - 1].p_ratio) * x / sq_in_rad*/;
+                    if (y - 1 < 0) { Neigh2[num][1] -= 1 + 2 * Materials[k - 1].p_ratio; Neigh2[num][0] -= 1 + 2 * Materials[k - 1].p_ratio; }
+                    //if ((z - 1 >= 0 && map.Component[0].Contains(map.Num_Crypt(x, y, z - 1))) || (z + 1 < cell_in_depth && map.Component[0].Contains(map.Num_Crypt(x, y, z + 1))) || z - 1 < 0 || z + 1 >= cell_in_depth)
+                    //    Neigh2[num][2] -= 1 + 2 * Materials[k - 1].p_ratio;
+
+                    Neigh[num] = Neigh2[num][0] + Neigh2[num][1] + Neigh2[num][2];
+                    Neigh2[num][0] = Neigh[num];
+                    Neigh2[num][1] = Neigh[num];
+                    Neigh2[num][2] = Neigh[num];
+
+                    if (Fractured[num] == false)
+                    {
+                        if ((x - 1 >= 0 && Fractured[map.Num_Crypt(x - 1, y, z)]))
+                        { Neigh2[num][1] -= 1 + 2 * Materials[k - 1].p_ratio; Neigh2[num][2] -= 1 + 2 * Materials[k - 1].p_ratio; }
+                        if ((x + 1 < sq_in_rad + 1 && Fractured[map.Num_Crypt(x + 1, y, z)]))
+                        { Neigh2[num][1] -= 1 + 2 * Materials[k - 1].p_ratio; Neigh2[num][2] -= 1 + 2 * Materials[k - 1].p_ratio; }
+                        if ((y - 1 >= 0 && Fractured[map.Num_Crypt(x, y - 1, z)]))
+                        { Neigh2[num][0] -= 1 + 2 * Materials[k - 1].p_ratio; Neigh2[num][2] -= 1 + 2 * Materials[k - 1].p_ratio; }
+                        if ((y + 1 < sq_in_rad + 1 && Fractured[map.Num_Crypt(x, y + 1, z)]))
+                        { Neigh2[num][0] -= 1 + 2 * Materials[k - 1].p_ratio; Neigh2[num][2] -= 1 + 2 * Materials[k - 1].p_ratio; }
+                        if ((z - 1 >= 0 && Fractured[map.Num_Crypt(x, y, z - 1)]))
+                        { Neigh2[num][0] -= 1 + 2 * Materials[k - 1].p_ratio; Neigh2[num][1] -= 1 + 2 * Materials[k - 1].p_ratio; }
+                        if ((z + 1 < cell_in_depth && Fractured[map.Num_Crypt(x, y, z + 1)]))
+                        { Neigh2[num][0] -= 1 + 2 * Materials[k - 1].p_ratio; Neigh2[num][1] -= 1 + 2 * Materials[k - 1].p_ratio; }
+
+                    }
+
+                    if (Fractured[num] == true)
+                    {
+                        //if ((x - 1 >= 0 && Fractured.Contains(map.Num_Crypt(x - 1, y, z)))||(x + 1 < sq_in_rad + 1 && Fractured.Contains(map.Num_Crypt(x + 1, y, z))))
+                        //{ Neigh2[num][0] = neigh;  }
+                        //if ((y - 1 >= 0 && Fractured.Contains(map.Num_Crypt(x, y - 1, z)))||(y + 1 < sq_in_rad + 1 && Fractured.Contains(map.Num_Crypt(x, y + 1, z))))
+                        //{ Neigh2[num][1] = neigh; }
+                        //if ((z - 1 >= 0 && Fractured.Contains(map.Num_Crypt(x, y, z - 1)))||(z + 1 < cell_in_depth && Fractured.Contains(map.Num_Crypt(x, y, z + 1))))
+                        //{ Neigh2[num][2] = neigh; }
+                        for (int s = 0; s < sq_in_rad + 1; s++)
+                        {
+                            if (s == x) continue;
+                            if (Fractured[map.Num_Crypt(s, y, z)])
+                            {
+                                Neigh2[num][0] = neigh;
+                                break;
+                            }
+                        }
+                        for (int s = 0; s < sq_in_rad + 1; s++)
+                        {
+                            if (s == y) continue;
+                            if (Fractured[map.Num_Crypt(x, s, z)])
+                            {
+                                Neigh2[num][1] = neigh;
+                                break;
+                            }
+                        }
+                        for (int s = 0; s < cell_in_depth; s++)
+                        {
+                            if (s == z) continue;
+                            if (Fractured[map.Num_Crypt(x, y, s)])
+                            {
+                                Neigh2[num][2] = neigh;
+                                break;
+                            }
+                        }
+
+                    }
+
                 }
         }
 
@@ -748,7 +858,7 @@ namespace ElasticModulus
 
         }
 
-        void Interact_Sym(bool end = false/*Map map*/)
+        void Interact_Sym(bool end = false, bool first = false)
         {
             List<double> Pressure_new_x = new List<double>();
             List<double> Pressure_new_y = new List<double>();
@@ -756,15 +866,15 @@ namespace ElasticModulus
 
             for (int i = 0; i < max_num; i++)
             {
-                Pressure_new_x.Add(0);
-                Pressure_new_y.Add(0);
-                Pressure_new_z.Add(0);
-                if (end == true)
+                if (end == true && (Fractured[i] == false))
                 {
                     Pressure_x[i] *= emp_param;
                     Pressure_y[i] *= emp_param;
                     Pressure_z[i] *= emp_param;
                 }
+                Pressure_new_x.Add(0);
+                Pressure_new_y.Add(0);
+                Pressure_new_z.Add(0);
             }
 
 
@@ -780,136 +890,144 @@ namespace ElasticModulus
                         int num_1 = map.Num_Crypt(x - 1, y, z);
                         if (map.Component[0].Contains(num_1) == false)
                         {
-                            double _new = Pressure_x[num_1] / Neigh2[num_1][0]/**0.5*/;
+                            double _new = Pressure_x[num_1] / Neigh2[num_1][0];
                             Pressure_new_x[num] -= _new;
                             Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
                             Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
-                            //Pressure_new_x[num_1] += _new;
-                            //Pressure_new_y[num_1] -= _new * Materials[k - 1].p_ratio; //k-1 - костыль
-                            //Pressure_new_z[num_1] -= _new * Materials[k - 1].p_ratio;
+                            if (Fractured[num_1] == false && Fractured[num] == false)
+                            {
+                                _new = Pressure_y[num_1] / Neigh2[num_1][0];
+                                Pressure_new_y[num] -= _new;
+                                Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                                Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                                _new = Pressure_z[num_1] / Neigh2[num_1][0];
+                                Pressure_new_z[num] -= _new;
+                                Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                                Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                            }
                         }
-                        //else
-                        //{
-                        //    double _new = Pressure_x[num] / Neigh2[num][0];
-                        //    Pressure_new_x[num] += _new;
-                        //    Pressure_new_y[num] -= _new * Materials[k - 1].p_ratio;
-                        //    Pressure_new_z[num] -= _new * Materials[k - 1].p_ratio;
-                        //}
+
                     }
 
-                    if (x + 1 < sq_in_rad+1 || x - 1 < 0) 
+                    if (x + 1 < sq_in_rad + 1 || x - 1 < 0)
                     {
                         int num_1 = map.Num_Crypt(x + 1, y, z);
                         if (map.Component[0].Contains(num_1) == false)
                         {
-                            double _new = Pressure_x[num_1] / Neigh2[num_1][0]/**0.5*/;
+                            double _new = Pressure_x[num_1] / Neigh2[num_1][0];
                             if (x - 1 < 0) _new *= 2;
                             Pressure_new_x[num] -= _new;
                             Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
-                            Pressure_new_z[num] += _new * Materials[k - 1].p_ratio; 
-                            
-                            //_new= Pressure_x[num_1] / Neigh[num_1] * 0.5;
-                            //Pressure_new_x[num_1] += _new;
-                            //Pressure_new_y[num_1] -= _new * Materials[k - 1].p_ratio;
-                            //Pressure_new_z[num_1] -= _new * Materials[k - 1].p_ratio;
+                            Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                            if (Fractured[num_1] == false && Fractured[num] == false)
+                            {
+                                _new = Pressure_y[num_1] / Neigh2[num_1][0];
+                                if (x - 1 < 0) _new *= 2;
+                                Pressure_new_y[num] -= _new;
+                                Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                                Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                                _new = Pressure_z[num_1] / Neigh2[num_1][0];
+                                if (x - 1 < 0) _new *= 2;
+                                Pressure_new_z[num] -= _new;
+                                Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                                Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                            }
                         }
-                        //else
-                        //{
-                        //    double _new = Pressure_x[num] / Neigh2[num][0];
-                        //    if (x - 1 < 0) _new *= 2;
-                        //    Pressure_new_x[num] += _new;
-                        //    Pressure_new_y[num] -= _new * Materials[k - 1].p_ratio;
-                        //    Pressure_new_z[num] -= _new * Materials[k - 1].p_ratio;
-                        //}
                     }
-                    if (y - 1 >= 0 || y + 1 >= sq_in_rad + 1) 
+
+                    if (y - 1 >= 0 || y + 1 >= sq_in_rad + 1)
                     {
                         int num_1 = map.Num_Crypt(x, y - 1, z);
                         if (map.Component[0].Contains(num_1) == false)
                         {
-                            double _new = Pressure_y[num_1] / Neigh2[num_1][1]/**0.5*/;
+                            double _new = Pressure_y[num_1] / Neigh2[num_1][1];
                             if (y >= sq_in_rad) _new *= 2;
                             Pressure_new_y[num] -= _new;
                             Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
                             Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
-                            //_new = Pressure_y[num_1] / Neigh[num_1]*0.5;
-                            //Pressure_new_y[num_1] += _new;
-                            //Pressure_new_x[num_1] -= _new * Materials[k - 1].p_ratio;
-                            //Pressure_new_z[num_1] -= _new * Materials[k - 1].p_ratio;
+                            if (Fractured[num_1] == false && Fractured[num] == false)
+                            {
+                                _new = Pressure_x[num_1] / Neigh2[num_1][1];
+                                if (y >= sq_in_rad) _new *= 2;
+                                Pressure_new_x[num] -= _new;
+                                Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                                Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                                _new = Pressure_z[num_1] / Neigh2[num_1][1];
+                                if (y >= sq_in_rad) _new *= 2;
+                                Pressure_new_z[num] -= _new;
+                                Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                                Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                            }
                         }
-                        //else
-                        //{
-                        //    double _new = Pressure_y[num] / Neigh2[num][1];
-                        //    if (y >= sq_in_rad) _new *= 2;
-                        //    Pressure_new_y[num] += _new;
-                        //    Pressure_new_x[num] -= _new * Materials[k - 1].p_ratio;
-                        //    Pressure_new_z[num] -= _new * Materials[k - 1].p_ratio;
-                        //}
                     }
 
-                    if (y + 1 < sq_in_rad+1)
+                    if (y + 1 < sq_in_rad + 1)
                     {
                         int num_1 = map.Num_Crypt(x, y + 1, z);
                         if (map.Component[0].Contains(num_1) == false)
                         {
-                            double _new = Pressure_y[num_1] / Neigh2[num_1][1]/** 0.5*/;
+                            double _new = Pressure_y[num_1] / Neigh2[num_1][1];
                             Pressure_new_y[num] -= _new;
                             Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
                             Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
-                            //Pressure_new_y[num_1] += _new;
-                            //Pressure_new_x[num_1] -= _new * Materials[k - 1].p_ratio;
-                            //Pressure_new_z[num_1] -= _new * Materials[k - 1].p_ratio;
+                            if (Fractured[num_1] == false && Fractured[num] == false)
+                            {
+                                _new = Pressure_x[num_1] / Neigh2[num_1][1];
+                                Pressure_new_x[num] -= _new;
+                                Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                                Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                                _new = Pressure_z[num_1] / Neigh2[num_1][1];
+                                Pressure_new_z[num] -= _new;
+                                Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                                Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                            }
                         }
-                        //else
-                        //{
-                        //    double _new = Pressure_y[num] / Neigh2[num][1];
-                        //    Pressure_new_y[num] += _new;
-                        //    Pressure_new_x[num] -= _new * Materials[k - 1].p_ratio;
-                        //    Pressure_new_z[num] -= _new * Materials[k - 1].p_ratio;
-                        //}
                     }
-                    if (z - 1 >= 0) 
+
+                    if (z - 1 >= 0)
                     {
                         int num_1 = map.Num_Crypt(x, y, z - 1);
                         if (map.Component[0].Contains(num_1) == false)
                         {
-                            double _new = Pressure_z[num_1] / Neigh2[num_1][2]/**0.5*/;
+                            double _new = Pressure_z[num_1] / Neigh2[num_1][2];
                             Pressure_new_z[num] -= _new;
                             Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
                             Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
-                            //Pressure_new_z[num_1] += _new;
-                            //Pressure_new_x[num_1] -= _new * Materials[k - 1].p_ratio;
-                            //Pressure_new_y[num_1] -= _new * Materials[k - 1].p_ratio;
+                            if (Fractured[num_1] == false && Fractured[num] == false)
+                            {
+                                _new = Pressure_x[num_1] / Neigh2[num_1][2];
+                                Pressure_new_x[num] -= _new;
+                                Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                                Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                                _new = Pressure_y[num_1] / Neigh2[num_1][2];
+                                Pressure_new_y[num] -= _new;
+                                Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                                Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                            }
                         }
-                        //else
-                        //{
-                        //    double _new = Pressure_z[num] / Neigh2[num][2];
-                        //    Pressure_new_z[num] += _new;
-                        //    Pressure_new_x[num] -= _new * Materials[k - 1].p_ratio;
-                        //    Pressure_new_y[num] -= _new * Materials[k - 1].p_ratio;
-                        //}
                     }
 
-                    if (z + 1 < cell_in_depth) 
+                    if (z + 1 < cell_in_depth)
                     {
                         int num_1 = map.Num_Crypt(x, y, z + 1);
                         if (map.Component[0].Contains(num_1) == false)
                         {
-                            double _new = Pressure_z[num_1] / Neigh2[num_1][2]/* * 0.5*/;
+                            double _new = Pressure_z[num_1] / Neigh2[num_1][2];
                             Pressure_new_z[num] -= _new;
                             Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
                             Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
-                            //Pressure_new_z[num_1] += _new;
-                            //Pressure_new_x[num_1] -= _new * Materials[k - 1].p_ratio;
-                            //Pressure_new_y[num_1] -= _new * Materials[k - 1].p_ratio;
+                            if (Fractured[num_1] == false && Fractured[num] == false)
+                            {
+                                _new = Pressure_x[num_1] / Neigh2[num_1][2];
+                                Pressure_new_x[num] -= _new;
+                                Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                                Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                                _new = Pressure_y[num_1] / Neigh2[num_1][2];
+                                Pressure_new_y[num] -= _new;
+                                Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                                Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                            }
                         }
-                        //else
-                        //{
-                        //    double _new = Pressure_z[num] / Neigh2[num][2];
-                        //    Pressure_new_z[num] += _new;
-                        //    Pressure_new_x[num] -= _new * Materials[k - 1].p_ratio;
-                        //    Pressure_new_y[num] -= _new * Materials[k - 1].p_ratio;
-                        //}
                     }
 
                 }
@@ -918,10 +1036,6 @@ namespace ElasticModulus
                 for (int i = 0; i < map.Component[k].Count; i++)
                 {
                     int num = map.Component[k][i];
-
-                    //if (Abs(Pressure_x[num] - Pressure_new_x[num]) > 0) Neigh2[num][0] = 2 + 4 * Materials[k - 1].p_ratio;
-                    //if (Abs(Pressure_y[num] - Pressure_new_y[num]) > 0) Neigh2[num][1] = 2 + 4 * Materials[k - 1].p_ratio;
-                    //if (Abs(Pressure_z[num] - Pressure_new_z[num]) > 0) Neigh2[num][2] = 2 + 4 * Materials[k - 1].p_ratio;
 
                     Pressure_x[num] = /*(*/Pressure_new_x[num]  /*+ Pressure_x[num]) * 0.5*/;
                     Pressure_y[num] = /*(*/Pressure_new_y[num] /*+ Pressure_y[num]) * 0.5*/;
@@ -937,18 +1051,17 @@ namespace ElasticModulus
             List<double> Pressure_new_y = new List<double>();
             List<double> Pressure_new_z = new List<double>();
             
-
             for (int i = 0; i < max_num; i++)
             {
-                Pressure_new_x.Add(0);
-                Pressure_new_y.Add(0);
-                Pressure_new_z.Add(0);
-                if (end == true)
+                if (end == true && (Fractured[i] == false))
                 {
                     Pressure_x[i] *= emp_param;
                     Pressure_y[i] *= emp_param;
                     Pressure_z[i] *= emp_param;
                 }
+                Pressure_new_x.Add(0);
+                Pressure_new_y.Add(0);
+                Pressure_new_z.Add(0);
             }
             //if(first == false)
             for (int k = 1; k < map.Component.Length; k++)
@@ -961,9 +1074,8 @@ namespace ElasticModulus
             for (int i = 0; i < tasks.Count; i++)
             { await tasks[i]; /*if (i % 5000 == 0) */ }
             
-            
 
-           await Task.Delay(1);
+           await Task.Delay(2);
  
             for (int k = 1; k < map.Component.Length; k++)
                 for (int i = 0; i < map.Component[k].Count; i++)
@@ -979,11 +1091,11 @@ namespace ElasticModulus
             for (int i = 0; i < tasks.Count; i++)
             { tasks[i]?.Dispose();}
             tasks.Clear();
-
+            // START   
 
             async Task Inter(int num, int k)
             {
-                Task.Run(()=>Interact_Sym_Jr(num, k)); 
+                Task.Run(() => Interact_Sym_Jr(num, k));
             }
             void Interact_Sym_Jr(int num, int k)
             {
@@ -1000,6 +1112,17 @@ namespace ElasticModulus
                         Pressure_new_x[num] -= _new;
                         Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
                         Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                        if (Fractured[num_1] == false && Fractured[num] == false) 
+                        { 
+                        _new = Pressure_y[num_1] / Neigh2[num_1][0];
+                        Pressure_new_y[num] -= _new;
+                        Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                        Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                        _new = Pressure_z[num_1] / Neigh2[num_1][0];
+                        Pressure_new_z[num] -= _new;
+                        Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                        Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                        }
                     }
                     
                 }
@@ -1014,16 +1137,21 @@ namespace ElasticModulus
                         Pressure_new_x[num] -= _new;
                         Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
                         Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                        if (Fractured[num_1] == false && Fractured[num] == false)
+                        {
+                            _new = Pressure_y[num_1] / Neigh2[num_1][0];
+                            if (x - 1 < 0) _new *= 2;
+                            Pressure_new_y[num] -= _new;
+                            Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                            Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                            _new = Pressure_z[num_1] / Neigh2[num_1][0];
+                            if (x - 1 < 0) _new *= 2;
+                            Pressure_new_z[num] -= _new;
+                            Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                            Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                        }
                     }
                 }
-
-                //if (x == 0 && y == 0) 
-                //{
-                //    double _new = Pressure_x[num]/(Neigh2[num][0]);
-                //    Pressure_new_x[num] -= _new;
-                //    //Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
-                //    //Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
-                //}
 
                 if (y - 1 >= 0 || y + 1 >= sq_in_rad + 1)
                 {
@@ -1035,6 +1163,19 @@ namespace ElasticModulus
                         Pressure_new_y[num] -= _new;
                         Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
                         Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                        if (Fractured[num_1] == false && Fractured[num] == false)
+                        { 
+                        _new = Pressure_x[num_1] / Neigh2[num_1][1];
+                        if (y >= sq_in_rad) _new *= 2;
+                        Pressure_new_x[num] -= _new;
+                        Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                        Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                        _new = Pressure_z[num_1] / Neigh2[num_1][1];
+                        if (y >= sq_in_rad) _new *= 2;
+                        Pressure_new_z[num] -= _new;
+                        Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                        Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                        }
                     }
                 }
 
@@ -1047,17 +1188,39 @@ namespace ElasticModulus
                         Pressure_new_y[num] -= _new;
                         Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
                         Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                        if (Fractured[num_1] == false && Fractured[num] == false)
+                        {
+                            _new = Pressure_x[num_1] / Neigh2[num_1][1];
+                            Pressure_new_x[num] -= _new;
+                            Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                            Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                            _new = Pressure_z[num_1] / Neigh2[num_1][1];
+                            Pressure_new_z[num] -= _new;
+                            Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                            Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                        }
                     }
                 }
                 if (z - 1 >= 0)
                 {
                     int num_1 = map.Num_Crypt(x, y, z - 1);
-                    if (map.Component[0].Contains(num_1) == false)
+                    if (map.Component[0].Contains(num_1)==false)
                     {
                         double _new = Pressure_z[num_1] / Neigh2[num_1][2];
                         Pressure_new_z[num] -= _new;
                         Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
                         Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                        if (Fractured[num_1] == false && Fractured[num] == false)
+                        {
+                            _new = Pressure_x[num_1] / Neigh2[num_1][2];
+                            Pressure_new_x[num] -= _new;
+                            Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                            Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                            _new = Pressure_y[num_1] / Neigh2[num_1][2];
+                            Pressure_new_y[num] -= _new;
+                            Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                            Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                        }
                     }
                 }
 
@@ -1070,6 +1233,17 @@ namespace ElasticModulus
                         Pressure_new_z[num] -= _new;
                         Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
                         Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                        if (Fractured[num_1] == false && Fractured[num] == false)
+                        { 
+                            _new = Pressure_x[num_1] / Neigh2[num_1][2];
+                            Pressure_new_x[num] -= _new;
+                            Pressure_new_y[num] += _new * Materials[k - 1].p_ratio;
+                            Pressure_new_z[num] += _new * Materials[k - 1].p_ratio;
+                            _new = Pressure_y[num_1] / Neigh2[num_1][2];
+                            Pressure_new_y[num] -= _new;
+                            Pressure_new_x[num] += _new * Materials[k - 1].p_ratio;
+                            Pressure_new_z[num] += _new * Materials[k - 1].p_ratio; 
+                        }
                     }
                 }
 
@@ -1077,8 +1251,6 @@ namespace ElasticModulus
 
         }
         
-
-
         void Interact_Sym2(int iter)
         {
             List<double> Pressure_new_x = new List<double>();
@@ -1647,6 +1819,26 @@ namespace ElasticModulus
             if (cell_in_depth == 1) cr = Sqrt(0.5 * ((x - y) * (x - y)));
             return cr;
         }
+        bool Griffith_Cr(int num, int mat_index, double epsilon = 1) 
+        {
+            // тк double сравнить с 0 проблематично, ввели эпсилон
+            // 8 можно выставить как параметр, тк это теоретическое значение
+            double tensile_str = Materials[mat_index].tensile_str;
+            double max = Max(Max(Pressure_x[num], Pressure_y[num]), Pressure_z[num]);
+            double min = Min(Min(Pressure_x[num], Pressure_y[num]), Pressure_z[num]);
+            if (3 * max + min >= 0)
+            {
+                if (max - tensile_str >= epsilon)
+                    return true;
+            }
+            else if (3 * max + min < 0)
+            {
+                if ((max - min) * (max - min) + 8 * tensile_str * (max + min) >= epsilon)
+                    return true;
+            }
+                return false;
+
+            }
 
         void Count_VM_and_Hydro(int num) 
         {
@@ -1657,7 +1849,7 @@ namespace ElasticModulus
         { 
             int sq_in_diam = 2 * sq_in_rad + 1;
             cell_size = diameter / sq_in_diam;
-            label1.Text = "sq_size = " + Round(cell_size*1000,2) + " мм";
+            label1.Text = "Размер клетки = " + Round(cell_size*1000,2) + " мм";
         }
         void Count_app_press(/*Map map*/)
         {
@@ -1684,35 +1876,106 @@ namespace ElasticModulus
             //double b = -1200;
             //double c = 0;
             iter++;
-            //switch (iter)
-            //{
-            //    case 1: { emp_param = 247; return; }
-            //    case 2: {emp_param = 437; return; }
-            //    case 3: {emp_param = 600; return;  }
-            //    case 4: {emp_param = 700; return;  }
-            //    case 5: { emp_param = 810; return; }
-            //    case 6: { emp_param = 870; return; }
-            //    case 7: { emp_param = 940; return; }
-            //    case 8: { emp_param = 988; return; }
-            //    case 9: { emp_param = 1020; return; }
-            //    case 10: { emp_param = 1050; return; }
-            //    case 11: { emp_param = 1075; return; }
-            //    case 12: { emp_param = 1110; return; }
-            //    case 13: { emp_param = 1110; return; }
-            //    case 14: { emp_param = 1130; return; }
-            //    case 15: { emp_param = 1142; return; }
-            //    case 16: { emp_param = 1150; return; }
-            //    case 17: { emp_param = 1160; return; }
-            //    case 18: { emp_param = 1160; return; }
-            //    case 19: { emp_param = 1160; return; }
-            //    case 20: { emp_param = 1160; return; }
-            //    case 21: { emp_param = 1175; return; }
-            //}
-            //if (iter >= 22 && iter < 31) { emp_param = 1170; return; }
-            //if (iter >= 31 && iter < 75) { emp_param = 1180; return; }
-            if (iter <= 15) { emp_param = 2195 - 2310 / Pow(iter + 0.8, 0.29); return; }
-            else if(iter<=200){ emp_param = 1186 - 400 / iter; return; }
-            else emp_param = 1185 ;
+            switch (iter)
+            {
+                //case 1: { emp_param = 8958; return; }
+                //case 2: { emp_param = 3293; return; }
+                //case 3: { emp_param = 2511; return; }
+                //case 4: { emp_param = 2207; return; }
+                //case 5: { emp_param = 2050; return; }
+                //case 6: { emp_param = 1958; return; }
+                //case 7: { emp_param = 1896; return; }
+                //case 8: { emp_param = 1855; return; }
+                //case 9: { emp_param = 1823; return; }
+                //case 10: { emp_param = 1799; return; }
+                //case 11: { emp_param = 1781; return; }
+                //case 12: { emp_param = 1766; return; }
+                //case 13: { emp_param = 1754; return; }
+                //case 14: { emp_param = 1744; return; }
+                //case 15: { emp_param = 1735; return; }
+                //case 16: { emp_param = 1728; return; }
+                //case 17: { emp_param = 1722; return; }
+                //case 18: { emp_param = 1715; return; }
+                //case 19: { emp_param = 1712; return; }
+                //case 20: { emp_param = 1707; return; }
+                //case 21: { emp_param = 1702; return; }
+                //case 22: { emp_param = 1712; return; }
+                //case 23: { emp_param = 1696; return; }
+                //case 24: { emp_param = 1698; return; }
+                //case 25: { emp_param = 1686; return; }
+                //case 26: { emp_param = 1688; return; }
+                //case 27: { emp_param = 1686; return; }
+                //case 28: { emp_param = 1684; return; }
+                //case 29: { emp_param = 1682; return; }
+                //case 30: { emp_param = 1680; return; }
+                //case 31: { emp_param = 1678; return; }
+                //case 32: { emp_param = 1677; return; }
+                //case 33: { emp_param = 1676; return; }
+                //case 34: { emp_param = 1674; return; }
+                //case 35: { emp_param = 1672; return; }
+                //case 36: { emp_param = 1672; return; }
+                //case 37: { emp_param = 1672; return; }
+                    //    //case 34: { emp_param = 18631; return; }
+                    //    //case 35: { emp_param = 18616; return; }
+                    //    //case 39: { emp_param = 18559; return; }
+                    //    //case 40: { emp_param = 18583; return; }
+                    //    //case 41: { emp_param = 18544; return; }
+                    //    //case 42: { emp_param = 18535; return; }
+                    //    //case 43: { emp_param = 18525; return; }
+                    //    //case 44: { emp_param = 18516; return; }
+                    //    //case 55: { emp_param = 18615; return; }
+                    //        //case 56: { emp_param = 18434; return; }
+                    //        //case 57: { emp_param = 18428; return; }
+                    //        //case 58: { emp_param = 18423; return; }
+                    //        //case 59: { emp_param = 18418; return; }
+                    //        //case 60: { emp_param = 18413; return; }
+                    //        //case 61: { emp_param = 18409; return; }
+                    //        //case 62: { emp_param = 18405; return; }
+                    //        //case 63: { emp_param = 18401; return; }
+                    //        //case 64: { emp_param = 18395; return; }
+                    //        //case 65: { emp_param = 18393; return; }
+                    //        //case 66: { emp_param = 18390; return; }
+                    //        //case 67: { emp_param = 18387; return; }
+                    //        //case 68: { emp_param = 18383; return; }
+                    //        //case 69: { emp_param = 18381; return; }
+            }
+            //double Dt = (double)(cell_in_depth) / cell_in_row;
+            if (iter < 20)
+            {
+                emp_param = 8958 - 7246 + 1311.2 * Exp(-(iter - 1) / 3.167) + 5934.8 * Exp(-(iter - 1) / 0.44811); //cd = 16
+                //emp_param = 104923 - 85877 + 14644 * Exp(-(iter - 1) / 3.181) + 71233 * Exp(-(iter - 1) / 0.4704); //cd =4
+                
+                //emp_param /= (12.269 - 19.36 * Exp(-(Dt - 0.097561) / 0.084862) + 8.0915 * Exp(-(Dt - 0.097561) / 0.035467));
+                //emp_param *= 0.01024 + 0.077347 * Exp(-(iter - 1) / 50.835) - 0.087587 * Exp(-(iter - 1) / 0.89822) + 0.995;
+
+                return;
+            }
+            if (iter <= 70)
+            {
+                emp_param = -0.0006 * Pow(iter-20,3) + 0.0731 *Pow(iter - 20, 2) - 3.2801 * (iter - 20) + 1707.3; //cd = 16
+                // emp_param = -498.1 * Log(iter) + 20411;//cd =4
+
+                //   emp_param /= (12.269 - 19.36 * Exp(-(Dt - 0.097561) / 0.084862) + 8.0915 * Exp(-(Dt - 0.097561) / 0.035467));
+                //emp_param *= 0.01024 + 0.077347 * Exp(-(iter - 1) / 50.835) - 0.087587 * Exp(-(iter - 1) / 0.89822) + 0.995;  
+                
+                return;
+            }
+            emp_param = 1650.81 - 17.7 + 13.246 * Exp(-(iter - 71) / 114.87) + 4.4536 * Exp(-(iter - 71) / 23.727); //cd =16
+            //emp_param = 18369 - 199 + 148.43 * Exp(-(iter - 71) / 115.64) + 50.567 * Exp(-(iter - 71) / 23.567); //cd =4
+            //  emp_param /= (12.269 - 19.36 * Exp(-(Dt - 0.097561) / 0.084862) + 8.0915 * Exp(-(Dt - 0.097561) / 0.035467));
+
+            //emp_param *= 0.01024 + 0.077347 * Exp(-(iter - 1) / 50.835) - 0.087587 * Exp(-(iter - 1) / 0.89822) + 0.995;
+            return;
+
+            //if (iter >= 20 && iter < 39) { emp_param = -0.0387 * iter * iter * iter + 4.1585 * iter * iter - 164.23 * iter + 20928; return; }
+            //if (iter >= 39 && iter < 55) { emp_param = -0.0014 * iter * iter * iter + 0.3546 * iter * iter - 33.337 * iter + 19410; return; }
+            //if (iter >= 56 && iter < 80) { emp_param = -4.824 * iter + 18704; return; }
+
+            //if (iter <= 15) { emp_param = 2195 - 2310 / Pow(iter + 0.8, 0.29); return; }
+            //else if (iter <= 200) { emp_param = 1186 - 400 / iter; return; }
+            //else emp_param = 1185;
+
+            emp_param = 1657;
         }
         private void nUD_SquareNum_ValueChanged(object sender, EventArgs e)
         {
@@ -1744,7 +2007,7 @@ namespace ElasticModulus
         // Обновление некоторых элементов интерфейса
         async Task Progress_Bar_Update(double max_P)
         {
-            label_Max_P.Text = "Max P = " + max_P;
+            label_Max_P.Text = "Max F = " + max_P;
             textBox1.Text += max_P + Environment.NewLine;
             label_Sigma_at_break.Text = "2*F/(Pi*D*t) = " + Round(2 * force_sum / (PI * thickness * diameter), 2);
 
@@ -1752,6 +2015,7 @@ namespace ElasticModulus
             textBox1.Refresh();
             label_Sigma_at_break.Refresh();
             label_Max_P.Refresh();
+            tB_Fracture.Refresh();
         }
 
         // Выбор отображаемого поля
@@ -1918,6 +2182,7 @@ namespace ElasticModulus
             // k == 1 - rB_CDA.Checked == true
             // k == 2 - rB_Log.Checked == true
             // k == 3 - rB_Log.Checked == true
+            
             for (int i = 0; i < panel_ColorLineHolder.Controls.Count;) 
             {
                 if (panel_ColorLineHolder.Controls[i].GetType() == typeof(Label)) panel_ColorLineHolder.Controls.RemoveAt(i);
@@ -1954,28 +2219,29 @@ namespace ElasticModulus
                     case 1: 
                         {
                             Label label;
-                            byte iter = 20;
+                            byte iter = 10;
 
-                            rect = new Rectangle(0, 0, bmp.Width, bmp.Height / (iter + 1));
-                            rect_color = Color_Function(-1, iter);
-                            g.FillRectangle(new SolidBrush(rect_color), rect);
+                            //rect = new Rectangle(0, 0, bmp.Width, bmp.Height / (iter + 1));
+                            //rect_color = Color_Function(-1, iter);
+                            //g.FillRectangle(new SolidBrush(rect_color), rect);
 
-                            label = new Label();
-                            label.Text = "< 0";
-                            label.Font = new Font("Microsoft Sans Serif", 7, FontStyle.Underline);
-                            label.AutoSize = true;
-                            panel_ColorLineHolder.Controls.Add(label);
-                            label.Location = new Point(label.Location.X, panel_ColorLine.Location.Y);
+                            //label = new Label();
+                            //label.Text = "< 0";
+                            //label.Font = new Font("Microsoft Sans Serif", 7, FontStyle.Underline);
+                            //label.AutoSize = true;
+                            //panel_ColorLineHolder.Controls.Add(label);
+                            //label.Location = new Point(label.Location.X, panel_ColorLine.Location.Y);
 
-                            for (byte i = 1; i <= iter+1; i++)
+                            for (byte i = 0; i <= iter /*+ 1*/; i++)
                             {
                                 rect = new Rectangle(0, bmp.Height / (iter+1) * i, bmp.Width, bmp.Height / (iter+1));
-                                rect_color = Color_Function(i-1, iter);
+                                rect_color = Color_Function(i/*-1*/, iter);
                                 g.FillRectangle(new SolidBrush(rect_color), rect);
 
                                 label = new Label();
-                                label.Text = Round((double)(i-1) / iter* 100,1) + "%";
-                                label.Font = new Font("Microsoft Sans Serif", 7, FontStyle.Underline);
+                                //string.Format("{0:F1}", 123.233424224))
+                                label.Text =string.Format("{0:F0}", Round((double)(i/*-1*/) / iter*100, 0)) + " %";
+                                label.Font = new Font("Microsoft Sans Serif", 11, FontStyle.Bold);
                                 label.AutoSize = true;
                                 panel_ColorLineHolder.Controls.Add(label);
                                 label.Location = new Point(label.Location.X, panel_ColorLine.Location.Y + bmp.Height / (iter + 1) * i);
